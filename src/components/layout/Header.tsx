@@ -1,5 +1,6 @@
 // src/components/layout/Header.tsx
 import { FiSearch, FiBell, FiChevronDown } from 'react-icons/fi'; // Cài: npm install react-icons
+import { NotificationDropdown } from '../ui/NotificationDropdown';
 
 export const Header = () => {
   return (
@@ -15,24 +16,24 @@ export const Header = () => {
       {/* Ở giữa: Thanh tìm kiếm nhanh (Nâng cấp hợp lý hơn wireframe) */}
       <div className="relative w-96">
         <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input 
-          type="search" 
-          placeholder="Search projects, clusters, users..." 
+        <input
+          type="search"
+          placeholder="Search projects, clusters, users..."
           className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition"
         />
       </div>
 
       {/* Bên phải: Actions & Profile */}
+      {/* Bên phải: Actions & Profile */}
       <div className="flex items-center gap-5">
-        <button className="text-gray-500 hover:text-indigo-600 relative p-1 rounded-full hover:bg-indigo-50">
-          <FiBell size={20} />
-          <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-        </button>
-        
+
+        {/* Đã thay nút chuông cứng bằng Dropdown Component */}
+        <NotificationDropdown />
+
         <div className="flex items-center gap-3 cursor-pointer group p-1.5 rounded-lg hover:bg-gray-50">
-          <img 
-            src="https://api.dicebear.com/8.x/notionists/svg?seed=Felix" 
-            alt="avatar" 
+          <img
+            src="https://api.dicebear.com/8.x/notionists/svg?seed=Felix"
+            alt="avatar"
             className="w-9 h-9 rounded-full border border-gray-200"
           />
           <div>

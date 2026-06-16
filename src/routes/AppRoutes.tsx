@@ -8,8 +8,8 @@ import { DevProjectDetail } from '../features/developer/DevProjectDetail';
 import { SystemOverview } from '../features/admin/SystemOverview';
 import { UsersManagement } from '../features/admin/UsersManagement';
 import { AuditLogs } from '../features/admin/AuditLogs';
+import { AllProjects } from '../features/admin/AllProjects';
 // Mock Pages
-const AllProjects = () => <div>All Projects Content</div>;
 
 export const AppRoutes = () => {
   return (

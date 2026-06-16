@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 
 // ============================================================================
-// LOCAL COMPONENTS (Nội dung của từng Tab - Đã gỡ bỏ border thừa để ghép vào khung chung)
+// LOCAL COMPONENTS
 // ============================================================================
 
 const TabDeployHistory = () => {
@@ -52,17 +52,24 @@ const TabDeployHistory = () => {
   );
 };
 
-const TabEnvironmentVariables = () => {
+const TabEnvironmentVariables = ({ isAdmin }: { isAdmin?: boolean }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <div className="animate-in fade-in duration-300">
       {/* Header của Tab ENV */}
       <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-        <h3 className="text-sm font-semibold text-gray-800">Environment Variables</h3>
-        <Button size="sm" onClick={() => setIsModalOpen(true)}>
-          <FiPlus className="mr-1" /> Add
-        </Button>
+        <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+          Environment Variables 
+          {isAdmin && <span className="text-orange-500 text-xs font-normal bg-orange-50 border border-orange-200 px-2 py-0.5 rounded">(Read-Only)</span>}
+        </h3>
+        
+        {/* Chỉ hiện nút Add nếu KHÔNG PHẢI là Admin */}
+        {!isAdmin && (
+          <Button size="sm" onClick={() => setIsModalOpen(true)}>
+            <FiPlus className="mr-1" /> Add
+          </Button>
+        )}
       </div>
 
       {/* Table ENV */}
@@ -71,31 +78,36 @@ const TabEnvironmentVariables = () => {
           <tr>
             <th className="px-6 py-3 w-1/3">Key</th>
             <th className="px-6 py-3">Value</th>
-            <th className="px-6 py-3 text-right">Action</th>
+            {/* Ẩn cột Action nếu là Admin */}
+            {!isAdmin && <th className="px-6 py-3 text-right">Action</th>}
           </tr>
         </thead>
         <tbody>
           <tr className="border-b border-gray-100 hover:bg-gray-50">
             <td className="px-6 py-4 font-mono text-gray-900">port</td>
             <td className="px-6 py-4 font-mono">8080</td>
-            <td className="px-6 py-4 text-right">
-              <button className="text-indigo-600 hover:text-indigo-800 mr-3"><FiEdit2 size={16} /></button>
-              <button className="text-red-600 hover:text-red-800"><FiTrash2 size={16} /></button>
-            </td>
+            {!isAdmin && (
+              <td className="px-6 py-4 text-right">
+                <button className="text-indigo-600 hover:text-indigo-800 mr-3"><FiEdit2 size={16} /></button>
+                <button className="text-red-600 hover:text-red-800"><FiTrash2 size={16} /></button>
+              </td>
+            )}
           </tr>
           <tr className="border-b border-gray-100 hover:bg-gray-50">
             <td className="px-6 py-4 font-mono text-gray-900">db_pass</td>
             <td className="px-6 py-4 font-mono">******</td>
-            <td className="px-6 py-4 text-right">
-              <button className="text-indigo-600 hover:text-indigo-800 mr-3"><FiEdit2 size={16} /></button>
-              <button className="text-red-600 hover:text-red-800"><FiTrash2 size={16} /></button>
-            </td>
+            {!isAdmin && (
+              <td className="px-6 py-4 text-right">
+                <button className="text-indigo-600 hover:text-indigo-800 mr-3"><FiEdit2 size={16} /></button>
+                <button className="text-red-600 hover:text-red-800"><FiTrash2 size={16} /></button>
+              </td>
+            )}
           </tr>
         </tbody>
       </table>
 
       {/* Modal Add ENV */}
-      {isModalOpen && (
+      {isModalOpen && !isAdmin && (
         <div className="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md border-2 border-green-500 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
@@ -113,8 +125,8 @@ const TabEnvironmentVariables = () => {
                 <textarea rows={4} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="Enter value..."></textarea>
               </div>
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="isSecret" className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
-                <label htmlFor="isSecret" className="text-sm text-gray-700">Secrets (Hide value after save)</label>
+                <input type="checkbox" id="isSecret" className="w-4 h-4 text-green-600 rounded focus:ring-green-500 cursor-pointer" />
+                <label htmlFor="isSecret" className="text-sm text-gray-700 cursor-pointer">Secrets (Hide value after save)</label>
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
@@ -153,7 +165,12 @@ const TabTerminalLogs = () => {
 // MAIN COMPONENT
 // ============================================================================
 
-export const DevProjectDetail = () => {
+interface DevProjectDetailProps {
+  mode?: 'developer' | 'admin';
+}
+
+export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) => {
+  const isAdmin = mode === 'admin';
   const [activeTab, setActiveTab] = useState<'deploy' | 'env' | 'logs'>('deploy');
 
   // TODO 3: Khi có API thật, import useParams từ 'react-router-dom' để lấy projectId và envId thay vì hardcode.
@@ -162,8 +179,11 @@ export const DevProjectDetail = () => {
     <div className="max-w-6xl mx-auto pb-12 space-y-8">
       {/* 1. Header & Navigation */}
       <div>
-        <Link to="/my-projects" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 font-medium mb-4 transition-colors">
-          <FiArrowLeft /> Back to your projects
+        <Link 
+          to={isAdmin ? "/admin/all-projects" : "/my-projects"} 
+          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 font-medium mb-4 transition-colors"
+        >
+          <FiArrowLeft /> {isAdmin ? "Back to ALL PROJECTS" : "Back to your projects"}
         </Link>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -171,9 +191,19 @@ export const DevProjectDetail = () => {
             <StatusBadge status="Running" />
           </div>
           <div className="flex gap-3">
-            <Button variant="outline"><FiRefreshCw className="mr-2" /> Redeploy</Button>
-            <Button variant="outline"><FiRefreshCw className="mr-2" /> Restart</Button>
-            <Button variant="outline" className="text-red-600 hover:bg-red-50 hover:border-red-200"><FiSquare className="mr-2" /> Stop</Button>
+            {isAdmin ? (
+              // Nút của Admin
+              <Button className="bg-red-600 hover:bg-red-700 text-white font-bold border-none shadow-sm flex items-center gap-2">
+                <FiSquare size={16} /> FORCE STOP
+              </Button>
+            ) : (
+              // Nút của Developer
+              <>
+                <Button variant="outline"><FiRefreshCw className="mr-2" /> Redeploy</Button>
+                <Button variant="outline"><FiRefreshCw className="mr-2" /> Restart</Button>
+                <Button variant="outline" className="text-red-600 hover:bg-red-50 hover:border-red-200"><FiSquare className="mr-2" /> Stop</Button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -187,6 +217,8 @@ export const DevProjectDetail = () => {
           <div className="flex"><span className="text-gray-500 w-24">MEM:</span> <span className="font-mono text-gray-900">1.2 GB</span></div>
           <div className="flex"><span className="text-gray-500 w-24">Container ID:</span> <span className="font-mono text-gray-500">kdfgo34uesdfn2</span></div>
         </div>
+        
+        {/* Nút này có thể giữ hoặc ẩn tùy ý, tạm thời tôi vẫn giữ cho đồng bộ */}
         <Button variant="outline" size="sm">Add Custom Domain</Button>
       </div>
 
@@ -217,59 +249,64 @@ export const DevProjectDetail = () => {
         {/* Nội dung bên trong khung */}
         <div className="bg-white">
           {activeTab === 'deploy' && <TabDeployHistory />}
-          {activeTab === 'env' && <TabEnvironmentVariables />}
+          {activeTab === 'env' && <TabEnvironmentVariables isAdmin={isAdmin} />}
           {activeTab === 'logs' && <TabTerminalLogs />}
         </div>
       </div>
 
-      {/* 4. Chart: Image Size History NẰM ĐỘC LẬP BÊN NGOÀI KHUNG TAB */}
-      <div className="bg-white p-6 rounded-xl border border-orange-200 shadow-sm">
-        <h3 className="text-sm font-bold text-orange-600 mb-6">Image Size History</h3>
-        
-        {/* TODO 4: Gỡ bỏ thẻ SVG tĩnh này. Cài đặt và sử dụng thư viện Recharts hoặc Chart.js để tự động render biểu đồ. */}
-        <div className="h-64 w-full relative flex items-end">
-          {/* Trục Y */}
-          <div className="absolute left-0 top-0 bottom-8 w-12 flex flex-col justify-between text-xs text-gray-500 font-mono text-right pr-2 border-r border-gray-800">
-            <span>700 MB</span>
-            <span>400 MB</span>
-            <span>0</span>
-          </div>
-          {/* Trục X */}
-          <div className="absolute left-12 right-0 bottom-8 border-t border-gray-800"></div>
-          <div className="absolute left-12 right-0 bottom-0 h-8 flex justify-between items-center text-xs text-gray-500 px-4">
-            <span>1</span>
-            <span>2</span>
-            <span>3</span>
-            <span>4</span>
-            <span className="text-right">Successful<br/>Deploys Times</span>
-          </div>
-          {/* Biểu đồ SVG */}
-          <svg className="absolute left-12 right-0 top-0 bottom-8 w-[calc(100%-3rem)] h-full" preserveAspectRatio="none">
-            <polyline points="0,150 100,50 250,80 400,70 550,90" fill="none" stroke="#4f46e5" strokeWidth="2" />
-            <circle cx="100" cy="50" r="4" fill="#4f46e5" />
-            <foreignObject x="110" y="20" width="120" height="60">
-              <div className="bg-white border border-gray-200 shadow-md p-2 rounded text-[10px] text-gray-600 leading-tight">
-                <div className="font-mono">Commit: a1b2c3d4</div>
-                <div>Size: 512MB</div>
-                <div>Date: 12/05/2026</div>
+      {/* 4 & 5. Chart và Danger Zone - Ẩn hoàn toàn nếu đang ở chế độ Admin */}
+      {!isAdmin && (
+        <>
+          {/* 4. Chart: Image Size History NẰM ĐỘC LẬP BÊN NGOÀI KHUNG TAB */}
+          <div className="bg-white p-6 rounded-xl border border-orange-200 shadow-sm">
+            <h3 className="text-sm font-bold text-orange-600 mb-6">Image Size History</h3>
+            
+            {/* TODO 4: Gỡ bỏ thẻ SVG tĩnh này. Cài đặt và sử dụng thư viện Recharts hoặc Chart.js để tự động render biểu đồ. */}
+            <div className="h-64 w-full relative flex items-end">
+              {/* Trục Y */}
+              <div className="absolute left-0 top-0 bottom-8 w-12 flex flex-col justify-between text-xs text-gray-500 font-mono text-right pr-2 border-r border-gray-800">
+                <span>700 MB</span>
+                <span>400 MB</span>
+                <span>0</span>
               </div>
-            </foreignObject>
-          </svg>
-        </div>
-      </div>
+              {/* Trục X */}
+              <div className="absolute left-12 right-0 bottom-8 border-t border-gray-800"></div>
+              <div className="absolute left-12 right-0 bottom-0 h-8 flex justify-between items-center text-xs text-gray-500 px-4">
+                <span>1</span>
+                <span>2</span>
+                <span>3</span>
+                <span>4</span>
+                <span className="text-right">Successful<br/>Deploys Times</span>
+              </div>
+              {/* Biểu đồ SVG */}
+              <svg className="absolute left-12 right-0 top-0 bottom-8 w-[calc(100%-3rem)] h-full" preserveAspectRatio="none">
+                <polyline points="0,150 100,50 250,80 400,70 550,90" fill="none" stroke="#4f46e5" strokeWidth="2" />
+                <circle cx="100" cy="50" r="4" fill="#4f46e5" />
+                <foreignObject x="110" y="20" width="120" height="60">
+                  <div className="bg-white border border-gray-200 shadow-md p-2 rounded text-[10px] text-gray-600 leading-tight">
+                    <div className="font-mono">Commit: a1b2c3d4</div>
+                    <div>Size: 512MB</div>
+                    <div>Date: 12/05/2026</div>
+                  </div>
+                </foreignObject>
+              </svg>
+            </div>
+          </div>
 
-      {/* 5. Danger Zone: Delete Project NẰM ĐỘC LẬP BÊN DƯỚI CÙNG */}
-      <div className="bg-red-50 p-6 rounded-xl border border-red-200 flex items-start justify-between">
-        <div>
-          <h3 className="text-sm font-bold text-red-800">Delete Project</h3>
-          <p className="text-xs text-red-600 mt-1 max-w-md">
-            Project must be in <strong>stop status</strong>. Send email to confirm and developer need to approve.
-          </p>
-        </div>
-        <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-100 hover:border-red-400">
-          Delete
-        </Button>
-      </div>
+          {/* 5. Danger Zone: Delete Project NẰM ĐỘC LẬP BÊN DƯỚI CÙNG */}
+          <div className="bg-red-50 p-6 rounded-xl border border-red-200 flex items-start justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-red-800">Delete Project</h3>
+              <p className="text-xs text-red-600 mt-1 max-w-md">
+                Project must be in <strong>stop status</strong>. Send email to confirm and developer need to approve.
+              </p>
+            </div>
+            <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-100 hover:border-red-400">
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -6,8 +6,8 @@ import { MyProjects } from '../features/developer/MyProjects';
 import { DevProjectDetail } from '../features/developer/DevProjectDetail';
 
 import { SystemOverview } from '../features/admin/SystemOverview';
+import { UsersManagement } from '../features/admin/UsersManagement';
 // Mock Pages
-const UsersManagement = () => <div>Users Management Content</div>;
 const AllProjects = () => <div>All Projects Content</div>;
 const AuditLogs = () => <div>Audit Logs Content</div>;
 

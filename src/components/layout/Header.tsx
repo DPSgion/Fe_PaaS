@@ -1,5 +1,5 @@
 // src/components/layout/Header.tsx
-import { FiSearch, FiBell, FiChevronDown } from 'react-icons/fi'; // Cài: npm install react-icons
+import { FiSearch } from 'react-icons/fi';
 import { NotificationDropdown } from '../ui/NotificationDropdown';
 import { ProfileDropdown } from '../ui/ProfileDropdown';
 

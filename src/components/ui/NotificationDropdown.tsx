@@ -1,89 +1,64 @@
-// src/components/ui/NotificationDropdown.tsx
 import { useState, useRef, useEffect } from 'react';
 import { FiBell, FiCheckCircle, FiAlertCircle, FiInfo, FiServer, FiCheck } from 'react-icons/fi';
-
-// ============================================================================
-// MOCK DATA & TYPES
-// ============================================================================
-type NotifType = 'success' | 'error' | 'warning' | 'info';
-
-interface Notification {
-    id: string;
-    title: string;
-    message: string;
-    time: string;
-    type: NotifType;
-    isRead: boolean;
-}
-
-const mockNotifications: Notification[] = [
-    {
-        id: 'n1',
-        title: 'Container Crashed',
-        message: 'Project Test-App-01 stopped unexpectedly due to OOM (Out of Memory).',
-        time: '2 mins ago',
-        type: 'error',
-        isRead: false,
-    },
-    {
-        id: 'n2',
-        title: 'Deploy Successful',
-        message: 'Cupzone Backend has been successfully deployed (commit: a1b2c3d4).',
-        time: '1 hour ago',
-        type: 'success',
-        isRead: false,
-    },
-    {
-        id: 'n3',
-        title: 'High CPU Warning',
-        message: 'AI English Master is consuming 85% CPU. Consider scaling up.',
-        time: '3 hours ago',
-        type: 'warning',
-        isRead: true,
-    },
-    {
-        id: 'n4',
-        title: 'System Maintenance',
-        message: 'PaaS System will undergo scheduled maintenance at 02:00 AM UTC.',
-        time: '1 day ago',
-        type: 'info',
-        isRead: true,
-    },
-    {
-        id: 'n5',
-        title: 'Role Updated',
-        message: 'Your role has been updated to SYSTEM_ADMIN by superuser.',
-        time: '2 days ago',
-        type: 'info',
-        isRead: true,
-    },
-];
+import { notificationApi, type NotificationResponse } from './api/notificationApi';
 
 // ============================================================================
 // COMPONENT
 // ============================================================================
 export const NotificationDropdown = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [notifications, setNotifications] = useState(mockNotifications);
+    // Thay đổi kiểu dữ liệu về NotificationResponse và mảng rỗng ban đầu
+    const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // TODO 1: Gắn WebSocket/SSE hứng thông báo realtime từ Backend
-    // useEffect(() => {
-    //   const socket = new WebSocket('ws://api.paas.com/notifications');
-    //   socket.onmessage = (event) => {
-    //     const newNotif = JSON.parse(event.data);
-    //     setNotifications(prev => [newNotif, ...prev]);
-    //   };
-    //   return () => socket.close();
-    // }, []);
-
-    // TODO 2: Gắn API fetch danh sách thông báo lịch sử (Pagination) lúc khởi tạo
-    // useEffect(() => { fetch('/api/notifications')... }, []);
-
-    // Đếm số lượng chưa đọc
+    // Tính toán số lượng chưa đọc
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
-    // Logic click ra ngoài (Click outside) để đóng dropdown
+    // 1. FETCH LỊCH SỬ THÔNG BÁO KHI LOAD TRANG
+    useEffect(() => {
+        const fetchHistory = async () => {
+            try {
+                const data = await notificationApi.getHistory(0, 10);
+                setNotifications(data.content);
+            } catch (error) {
+                console.error("Failed to fetch notification history", error);
+            }
+        };
+        fetchHistory();
+    }, []);
+
+    // 2. KẾT NỐI SSE ĐỂ HỨNG THÔNG BÁO REALTIME TỪ SPRING BOOT
+    useEffect(() => {
+        // Lấy token để truyền qua URL (Vì EventSource không hỗ trợ Header Authorization)
+        const token = localStorage.getItem('paas_token') || ''; 
+        // Đổi domain cho khớp với cấu hình proxy của bạn. 
+        const sseUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/notifications/stream?token=${token}`;
+        
+        const eventSource = new EventSource(sseUrl);
+
+        eventSource.onmessage = (event) => {
+            try {
+                const newNotif: NotificationResponse = JSON.parse(event.data);
+                // Nhét thông báo mới vào đầu danh sách
+                setNotifications(prev => [newNotif, ...prev]);
+            } catch (err) {
+                console.error("Error parsing SSE data", err);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.error("SSE Connection Error", error);
+            eventSource.close();
+            // Có thể viết thêm logic auto-reconnect ở đây nếu cần
+        };
+
+        // Dọn dẹp connection khi user rời khỏi hệ thống / component bị unmount
+        return () => {
+            eventSource.close();
+        };
+    }, []);
+
+    // Logic click ra ngoài để đóng dropdown
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -95,18 +70,26 @@ export const NotificationDropdown = () => {
     }, []);
 
     // Xử lý "Đánh dấu tất cả đã đọc"
-    // TODO 3: Gọi API để đồng bộ trạng thái "Đã đọc" xuống Database
-    const handleMarkAllAsRead = () => {
+    const handleMarkAllAsRead = async () => {
+        // Tối ưu UX: Giao diện chuyển thành đã đọc ngay lập tức (Optimistic UI)
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        
+        try {
+            // TODO: Gọi API Backend lưu xuống DB (Hiện tại API của bạn chưa có endpoint này)
+            // await notificationApi.markAllAsRead();
+        } catch (error) {
+            console.error("Failed to mark all as read", error);
+        }
     };
 
-    // Icon động theo loại thông báo
-    const getIcon = (type: NotifType) => {
-        switch (type) {
-            case 'success': return <FiCheckCircle className="text-green-500 mt-0.5 shrink-0" size={16} />;
-            case 'error': return <FiAlertCircle className="text-red-500 mt-0.5 shrink-0" size={16} />;
-            case 'warning': return <FiServer className="text-orange-500 mt-0.5 shrink-0" size={16} />;
-            case 'info': return <FiInfo className="text-blue-500 mt-0.5 shrink-0" size={16} />;
+    // Đổi logic nhận kiểu Type In hoa của Spring Boot
+    const getIcon = (type: string) => {
+        switch (type.toUpperCase()) {
+            case 'SUCCESS': return <FiCheckCircle className="text-green-500 mt-0.5 shrink-0" size={16} />;
+            case 'ERROR': return <FiAlertCircle className="text-red-500 mt-0.5 shrink-0" size={16} />;
+            case 'WARNING': return <FiServer className="text-orange-500 mt-0.5 shrink-0" size={16} />;
+            case 'INFO': 
+            default: return <FiInfo className="text-blue-500 mt-0.5 shrink-0" size={16} />;
         }
     };
 
@@ -154,7 +137,8 @@ export const NotificationDropdown = () => {
                                             <h4 className={`text-sm ${notif.isRead ? 'font-medium text-gray-700' : 'font-bold text-gray-900'}`}>
                                                 {notif.title}
                                             </h4>
-                                            <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">{notif.time}</span>
+                                            {/* Ánh xạ sang trường createdAt của Backend */}
+                                            <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">{notif.createdAt}</span>
                                         </div>
                                         <p className="text-xs text-gray-600 mt-1 leading-relaxed line-clamp-2">
                                             {notif.message}

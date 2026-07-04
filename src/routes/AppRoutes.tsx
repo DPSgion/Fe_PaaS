@@ -3,6 +3,7 @@ import { MainLayout } from '../components/layout/MainLayout';
 import { ProtectedRoute } from '../components/layout/ProtectedRoute';
 import { PublicRoute } from '../components/layout/PublicRoute';
 import { Login } from '../features/auth/Login';
+import { GithubCallback } from '../features/profile/GithubCallback';
 
 import { UserProfile } from '../features/profile/UserProfile';
 
@@ -40,6 +41,7 @@ export const AppRoutes = () => {
 
             {/* Profile */}
             <Route path="/profile" element={<UserProfile />} />
+            <Route path="/github/callback" element={<GithubCallback />} />
 
             {/* Admin Routes */}
             <Route path="/admin/overview" element={<SystemOverview />} />

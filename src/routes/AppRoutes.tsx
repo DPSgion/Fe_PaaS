@@ -15,6 +15,7 @@ import { SystemOverview } from '../features/admin/SystemOverview';
 import { UsersManagement } from '../features/admin/UsersManagement';
 import { AuditLogManagement } from '../features/admin/AuditLogs';
 import { AllProjects } from '../features/admin/AllProjects';
+import { CreateProject } from '../features/developer/CreateProject';
 
 export const AppRoutes = () => {
   return (
@@ -37,6 +38,7 @@ export const AppRoutes = () => {
             {/* Personal Space Routes */}
             <Route path="/" element={<DevDashboard />} />
             <Route path="/my-projects" element={<MyProjects />} />
+            <Route path="/projects/new" element={<CreateProject />} />
             <Route path="/project/:projectId/env/:envId" element={<DevProjectDetail />} />
 
             {/* Profile */}

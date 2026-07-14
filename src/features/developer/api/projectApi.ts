@@ -118,6 +118,23 @@ export const projectApi = {
         return response.data; // Trả về thông báo thành công
     },
 
+    restartProject: async (projectId: string | number): Promise<string> => {
+        const response = await axios.post(`/deployments/${projectId}/restart`);
+        return response.data;
+    },
+
+    // API Dừng dự án
+    stopProject: async (projectId: string | number): Promise<string> => {
+        const response = await axios.post(`/deployments/${projectId}/stop`);
+        return response.data;
+    },
+
+    // API Khởi động dự án
+    startProject: async (projectId: string | number): Promise<string> => {
+        const response = await axios.post(`/deployments/${projectId}/start`);
+        return response.data;
+    },
+
     // API Mock cho Lịch sử Deploy (Chờ Backend làm xong API thật thì đổi đường dẫn)
     getDeployHistories: async (projectId: string | number) => {
         // Tạm thời mock data để giao diện lên hình

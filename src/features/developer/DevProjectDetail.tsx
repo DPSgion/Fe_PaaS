@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { FiArrowLeft, FiRefreshCw, FiSquare, FiTerminal, FiDatabase, FiActivity, FiLoader, FiSettings } from 'react-icons/fi';
+import { FiArrowLeft, FiRefreshCw, FiSquare, FiTerminal, FiDatabase, FiActivity, FiLoader, FiSettings, FiPlay } from 'react-icons/fi';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { EnvVariablesTab } from './components/EnvVariablesTab';
@@ -82,7 +82,10 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
 
   const [project, setProject] = useState<ProjectDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDeploying, setIsDeploying] = useState(false); // State quản lý nút Redeploy
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   const fetchDetail = async () => {
     try {
@@ -97,8 +100,8 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
 
 
   useEffect(() => {
-        if (projectId) fetchDetail();
-    }, [projectId]);
+    if (projectId) fetchDetail();
+  }, [projectId]);
 
   // Hàm xử lý khi bấm nút Redeploy
   const handleRedeploy = async () => {
@@ -113,6 +116,56 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
       window.alert(msg);
     } finally {
       setIsDeploying(false);
+    }
+  };
+
+  const handleRestart = async () => {
+    if (!projectId || !window.confirm("Bạn có chắc chắn muốn khởi động lại (restart) dự án này?")) return;
+
+    setIsRestarting(true);
+    try {
+      const message = await projectApi.restartProject(projectId);
+      window.alert(message); // Hiển thị thông báo thành công
+      fetchDetail(); // Gọi lại hàm fetchDetail để cập nhật trạng thái UI sang RUNNING
+    } catch (error: any) {
+      // Hứng lỗi (chưa từng deploy, hoặc lén xóa container trên VPS)
+      const msg = error.response?.data?.message || "Lỗi khi khởi động lại dự án.";
+      window.alert(msg);
+    } finally {
+      setIsRestarting(false);
+    }
+  };
+
+  const handleStop = async () => {
+    // Cảnh báo rõ ràng vì thao tác này làm gián đoạn dịch vụ
+    if (!projectId || !window.confirm("Bạn có chắc chắn muốn dừng (stop) dự án này? Ứng dụng sẽ không thể truy cập cho đến khi được bật lại.")) return;
+
+    setIsStopping(true);
+    try {
+      const message = await projectApi.stopProject(projectId);
+      window.alert(message);
+      fetchDetail(); // Gọi lại để đổi StatusBadge thành STOPPED
+    } catch (error: any) {
+      const msg = error.response?.data?.message || "Lỗi khi dừng dự án.";
+      window.alert(msg);
+    } finally {
+      setIsStopping(false);
+    }
+  };
+
+  const handleStart = async () => {
+    if (!projectId) return;
+
+    setIsStarting(true);
+    try {
+      const message = await projectApi.startProject(projectId);
+      window.alert(message);
+      fetchDetail(); // Gọi lại để đổi StatusBadge thành RUNNING
+    } catch (error: any) {
+      const msg = error.response?.data?.message || "Lỗi khi khởi động dự án.";
+      window.alert(msg);
+    } finally {
+      setIsStarting(false);
     }
   };
 
@@ -163,7 +216,7 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
               </Button>
             ) : (
               <>
-                {/* NÚT REDEPLOY ĐÃ ĐƯỢC NỐI API */}
+                {/* NÚT REDEPLOY */}
                 <Button
                   variant="outline"
                   className="cursor-pointer"
@@ -174,8 +227,38 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
                   {isDeploying ? 'Deploying...' : 'Redeploy'}
                 </Button>
 
-                <Button variant="outline" className="cursor-pointer"><FiRefreshCw className="mr-2" /> Restart</Button>
-                <Button variant="outline" className="text-red-600 hover:bg-red-50 hover:border-red-200 cursor-pointer"><FiSquare className="mr-2" /> Stop</Button>
+                {/* NÚT RESTART (Đã sửa vị trí và thay thế nút cũ) */}
+                <Button
+                  variant="outline"
+                  className="cursor-pointer"
+                  onClick={handleRestart}
+                  disabled={isRestarting || isDeploying || project.status === 'BUILDING'}
+                >
+                  {isRestarting ? <FiLoader className="mr-2 animate-spin" /> : <FiRefreshCw className="mr-2" />}
+                  {isRestarting ? 'Restarting...' : 'Restart'}
+                </Button>
+
+                {/* NÚT START / STOP (Hoán đổi tự động) */}
+                {project.status === 'STOPPED' ? (
+                  <Button
+                    className="!bg-green-600 hover:!bg-green-700 !text-white font-semibold !border-none shadow-sm cursor-pointer"
+                    onClick={handleStart}
+                    disabled={isStarting || isDeploying || isRestarting}
+                  >
+                    {isStarting ? <FiLoader className="mr-2 animate-spin" /> : <FiPlay className="mr-2" />}
+                    {isStarting ? 'Starting...' : 'Start'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="text-red-600 hover:bg-red-50 hover:border-red-200 cursor-pointer"
+                    onClick={handleStop}
+                    disabled={isStopping || isDeploying || isRestarting || project.status === 'BUILDING'}
+                  >
+                    {isStopping ? <FiLoader className="mr-2 animate-spin" /> : <FiSquare className="mr-2" />}
+                    {isStopping ? 'Stopping...' : 'Stop'}
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -233,7 +316,7 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
           >
             <FiTerminal /> Terminal Logs
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('settings')}
             className={`px-4 py-3 font-semibold text-sm border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${activeTab === 'settings' ? 'border-indigo-600 text-indigo-700 bg-white rounded-t-lg' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
           >
@@ -246,10 +329,10 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
           {activeTab === 'env' && projectId && <EnvVariablesTab projectId={projectId} />}
           {activeTab === 'logs' && <TabTerminalLogs />}
           {activeTab === 'settings' && project && projectId && (
-            <ProjectSettingsTab 
-                projectId={projectId} 
-                initialData={project} 
-                onUpdateSuccess={fetchDetail} 
+            <ProjectSettingsTab
+              projectId={projectId}
+              initialData={project}
+              onUpdateSuccess={fetchDetail}
             />
           )}
         </div>

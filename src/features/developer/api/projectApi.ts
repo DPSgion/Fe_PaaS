@@ -1,5 +1,12 @@
 import axios from '../../../lib/axios';
 
+export interface ProjectUpdateRequest {
+    projectName: string;
+    branch: string;
+    targetPort: number;
+    rootDirectory: string | null;
+}
+
 // Map chính xác theo GithubRepoResponse của Backend
 export interface GithubRepo {
     id: number;
@@ -44,7 +51,12 @@ export interface ProjectDetailResponse {
     branch: string;
     status: 'BUILDING' | 'RUNNING' | 'STOPPED' | 'CRASHED';
     createdAt: string;
-    // Các trường dưới đây Backend chưa có, tạm thời để optional
+    
+    // THÊM 3 TRƯỜNG MỚI TỪ BACKEND
+    targetPort: number;
+    rootDirectory: string | null;
+    githubUrl: string;
+
     containerId?: string;
     cpuUsage?: string;
     ramUsage?: string;
@@ -63,10 +75,14 @@ export const projectApi = {
         return response.data;
     },
 
-    // Gọi endpoint thực tế của Spring Boot
-    importProject: async (payload: { projectName: string; repoFullName: string; branch: string }) => {
+    importProject: async (payload: { projectName: string; repoFullName: string; branch: string; targetPort: number; rootDirectory: string | null }) => {
         const response = await axios.post('/projects/import', payload);
-        return response.data; // Trả về entity Project từ Backend
+        return response.data;
+    },
+
+    updateProjectSettings: async (projectId: string | number, payload: ProjectUpdateRequest): Promise<string> => {
+        const response = await axios.put(`/projects/${projectId}/settings`, payload);
+        return response.data;
     },
 
     getEnvs: async (projectId: string | number): Promise<EnvVarResponse[]> => {
@@ -95,6 +111,11 @@ export const projectApi = {
     getProjectDetail: async (projectId: string | number): Promise<ProjectDetailResponse> => {
         const response = await axios.get(`/projects/${projectId}`);
         return response.data;
+    },
+
+    triggerDeploy: async (projectId: string | number): Promise<string> => {
+        const response = await axios.post(`/deployments/${projectId}/deploy`);
+        return response.data; // Trả về thông báo thành công
     },
 
     // API Mock cho Lịch sử Deploy (Chờ Backend làm xong API thật thì đổi đường dẫn)

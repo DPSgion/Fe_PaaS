@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiGithub, FiLock, FiGlobe, FiArrowRight, FiLoader, FiArrowLeft, FiChevronDown, FiCheck } from 'react-icons/fi';
+import { FiSearch, FiGithub, FiLock, FiGlobe, FiArrowRight, FiLoader, FiArrowLeft, FiChevronDown, FiCheck, FiSettings, FiChevronUp } from 'react-icons/fi';
 import { projectApi, type GithubRepo, type GithubBranch } from './api/projectApi';
 
 export const CreateProject = () => {
@@ -19,15 +19,21 @@ export const CreateProject = () => {
     // =========================================================
     const [selectedRepo, setSelectedRepo] = useState<GithubRepo | null>(null);
     const [projectName, setProjectName] = useState('');
-    
+
     const [branches, setBranches] = useState<GithubBranch[]>([]);
     const [isLoadingBranches, setIsLoadingBranches] = useState(false);
     const [selectedBranch, setSelectedBranch] = useState('');
-    
+
     // Quản lý trạng thái của Searchable Dropdown
     const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
     const [branchSearchQuery, setBranchSearchQuery] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [rootDirectory, setRootDirectory] = useState('');
+
+    const [targetPort, setTargetPort] = useState<string>('');
 
     const [isDeploying, setIsDeploying] = useState(false);
 
@@ -80,13 +86,14 @@ export const CreateProject = () => {
 
     const handleSelectRepo = async (repo: GithubRepo) => {
         setSelectedRepo(repo);
-        setProjectName(repo.name); 
-        setSelectedBranch(repo.default_branch); 
+        const safeName = repo.name.replace(/[_ ]/g, '-');
+        setProjectName(safeName);
+        setSelectedBranch(repo.default_branch);
         setStep(2);
-        setBranchSearchQuery(''); 
+        setBranchSearchQuery('');
 
         const [owner, repoName] = repo.full_name.split('/');
-        
+
         setIsLoadingBranches(true);
         try {
             const branchData = await projectApi.getRepoBranches(owner, repoName);
@@ -113,12 +120,14 @@ export const CreateProject = () => {
             const payload = {
                 projectName: projectName,
                 repoFullName: selectedRepo.full_name, // VD: phuong-devops/cupzone
-                branch: selectedBranch // VD: main
+                branch: selectedBranch, // VD: main
+                targetPort: parseInt(targetPort, 10),
+                rootDirectory: rootDirectory.trim() === '' ? null : rootDirectory.trim()
             };
 
             // Gọi API thực tế
             const result: any = await projectApi.importProject(payload);
-            
+
             // LƯU Ý KỸ THUẬT:
             // Backend của bạn hiện tại hàm importProject chỉ trả về thực thể Project (có result.id).
             // Nó chưa tạo ra Environment (Môi trường) cho Project này. 
@@ -149,7 +158,7 @@ export const CreateProject = () => {
 
             {/* SỬA GẮT 1: Bỏ overflow-hidden ở thẻ bao ngoài cùng để Dropdown thò ra ngoài thoải mái */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm relative min-h-[400px]">
-                
+
                 {/* ======================= BƯỚC 1: CHỌN REPO ======================= */}
                 {step === 1 && (
                     <div className="animate-in slide-in-from-left-4 fade-in duration-300 flex flex-col h-full">
@@ -223,10 +232,10 @@ export const CreateProject = () => {
                 {/* ======================= BƯỚC 2: CẤU HÌNH & DEPLOY ======================= */}
                 {step === 2 && selectedRepo && (
                     <div className="animate-in slide-in-from-right-8 fade-in duration-300 flex flex-col h-full min-h-[400px]">
-                        
+
                         {/* Header của form (Bo góc trên) */}
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-4 bg-gray-50/50 rounded-t-2xl">
-                            <button 
+                            <button
                                 onClick={handleBackToRepos}
                                 className="p-2 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 cursor-pointer"
                             >
@@ -241,7 +250,7 @@ export const CreateProject = () => {
 
                         {/* SỬA GẮT 2: Thêm `relative z-20` để ép toàn bộ thân form nằm đè lên trên cái Footer */}
                         <div className="p-8 flex-1 space-y-6 max-w-2xl relative z-20">
-                            
+
                             {/* Cấu hình Tên Project */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-900 mb-2">Project Name</label>
@@ -254,10 +263,26 @@ export const CreateProject = () => {
                                 <p className="text-xs text-gray-500 mt-2">Tên dự án sẽ được dùng để tạo định danh và URL nội bộ.</p>
                             </div>
 
+                            {/* Cấu hình Target Port */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-900 mb-2">Target Port</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="65535"
+                                    value={targetPort}
+                                    onChange={(e) => setTargetPort(e.target.value)}
+                                    placeholder="e.g. 8080, 3000, 80"
+                                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono"
+                                    required
+                                />
+                                <p className="text-xs text-gray-500 mt-2">Cổng (port) mà ứng dụng của bạn đang lắng nghe bên trong Container.</p>
+                            </div>
+
                             {/* Cấu hình Nhánh (Searchable Dropdown) */}
                             <div className="relative" ref={dropdownRef}>
                                 <label className="block text-sm font-semibold text-gray-900 mb-2">Production Branch</label>
-                                
+
                                 <button
                                     type="button"
                                     onClick={() => setIsBranchDropdownOpen(!isBranchDropdownOpen)}
@@ -290,7 +315,7 @@ export const CreateProject = () => {
                                             {filteredBranches.length > 0 ? (
                                                 <ul className="py-1">
                                                     {filteredBranches.map((branch) => (
-                                                        <li 
+                                                        <li
                                                             key={branch.name}
                                                             onClick={() => {
                                                                 setSelectedBranch(branch.name);
@@ -312,13 +337,56 @@ export const CreateProject = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* ===================================== */}
+                            {/* CHÈN GIAO DIỆN ADVANCED SETTINGS VÀO ĐÂY */}
+                            <div className="mt-8 border-t border-gray-200 pt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdvanced(!showAdvanced)}
+                                    className="flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-indigo-600 transition-colors cursor-pointer"
+                                >
+                                    <FiSettings size={16} />
+                                    Advanced Settings
+                                    {showAdvanced ? <FiChevronUp className="ml-1" /> : <FiChevronDown className="ml-1" />}
+                                </button>
+
+                                {showAdvanced && (
+                                    <div className="mt-4 p-5 bg-gray-50 border border-gray-200 rounded-xl animate-in slide-in-from-top-2 duration-200 relative z-10">
+                                        <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                                            Root Directory
+                                        </label>
+                                        <div className="flex rounded-xl shadow-sm">
+                                            <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-300 bg-gray-200 text-gray-600 sm:text-sm font-mono font-bold">
+                                                ./
+                                            </span>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. backend/src (Bỏ trống nếu là thư mục gốc)"
+                                                value={rootDirectory}
+                                                // Chặn gõ ".." hoặc bắt đầu bằng "/" ngay trên UI để phòng hờ thêm
+                                                onChange={(e) => {
+                                                    let val = e.target.value;
+                                                    if (val.startsWith('/')) val = val.substring(1);
+                                                    val = val.replace(/\.\./g, '');
+                                                    setRootDirectory(val);
+                                                }}
+                                                className="flex-1 min-w-0 block w-full px-4 py-2.5 rounded-none rounded-r-xl bg-white border border-gray-300 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-2.5">
+                                            Thư mục chứa mã nguồn và <code className="bg-gray-200 px-1 py-0.5 rounded text-gray-700">Dockerfile</code>. Mặc định hệ thống sẽ build ở thư mục gốc của repository.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Footer (Bo góc dưới và hạ z-index xuống thấp hơn form body) */}
                         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end rounded-b-2xl relative z-10">
                             <button
                                 onClick={handleDeploy}
-                                disabled={isDeploying || !projectName.trim() || !selectedBranch}
+                                disabled={isDeploying || !projectName.trim() || !selectedBranch || !targetPort}
                                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
                             >
                                 {isDeploying ? (

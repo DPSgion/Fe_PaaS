@@ -4,7 +4,7 @@ import { FiArrowLeft, FiRefreshCw, FiSquare, FiTerminal, FiDatabase, FiActivity,
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { EnvVariablesTab } from './components/EnvVariablesTab';
-import { projectApi, type ProjectDetailResponse } from './api/projectApi';
+import { projectApi, type ProjectDetailResponse, type ProjectMetricsResponse } from './api/projectApi';
 import { ProjectSettingsTab } from './components/ProjectSettingsTab';
 
 // ============================================================================
@@ -86,11 +86,18 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
   const [isRestarting, setIsRestarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [metrics, setMetrics] = useState<ProjectMetricsResponse | null>(null);
 
   const fetchDetail = async () => {
     try {
-      const data = await projectApi.getProjectDetail(projectId as string);
-      setProject(data);
+      // Dùng Promise.all để lấy dữ liệu song song
+      const [projectData, metricsData] = await Promise.all([
+        projectApi.getProjectDetail(projectId as string),
+        projectApi.getProjectMetrics(projectId as string).catch(() => null) // Nếu lỗi lấy metrics (do chưa deploy) thì bỏ qua, không làm chết trang
+      ]);
+
+      setProject(projectData);
+      if (metricsData) setMetrics(metricsData);
     } catch (error) {
       console.error("Lỗi lấy chi tiết dự án", error);
     } finally {
@@ -280,7 +287,9 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
           </div>
           <div className="flex">
             <span className="text-gray-500 w-24">Image:</span>
-            <span className="font-mono text-gray-900">526 MB</span>
+            <span className="font-mono text-gray-900">
+              {metrics?.imageSize ? `${metrics.imageSize} MB` : 'N/A'}
+            </span>
           </div>
           <div className="flex">
             <span className="text-gray-500 w-24">MEM:</span>
@@ -288,7 +297,9 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
           </div>
           <div className="flex">
             <span className="text-gray-500 w-24">Container ID:</span>
-            <span className="font-mono text-gray-500">kdfgo34u...</span>
+            <span className="font-mono text-gray-500">
+              {metrics?.containerId ? metrics.containerId.substring(0, 12) : 'N/A'}
+            </span>
           </div>
         </div>
 

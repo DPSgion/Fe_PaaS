@@ -1,5 +1,10 @@
 import axios from '../../../lib/axios';
 
+export interface ProjectMetricsResponse {
+    containerId: string | null;
+    imageSize: number | null;
+}
+
 export interface ProjectUpdateRequest {
     projectName: string;
     branch: string;
@@ -132,6 +137,12 @@ export const projectApi = {
     // API Khởi động dự án
     startProject: async (projectId: string | number): Promise<string> => {
         const response = await axios.post(`/deployments/${projectId}/start`);
+        return response.data;
+    },
+
+    // API Lấy thông số giám sát dự án
+    getProjectMetrics: async (projectId: string | number): Promise<ProjectMetricsResponse> => {
+        const response = await axios.get(`/monitoring/projects/${projectId}/metrics`);
         return response.data;
     },
 

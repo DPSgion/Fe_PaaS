@@ -6,6 +6,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { EnvVariablesTab } from './components/EnvVariablesTab';
 import { projectApi, type ProjectDetailResponse, type ProjectMetricsResponse } from './api/projectApi';
 import { ProjectSettingsTab } from './components/ProjectSettingsTab';
+import { ResourceMetricsChart } from './components/ResourceMetricsChart';
 
 // ============================================================================
 // LOCAL COMPONENTS (MOCK DATA)
@@ -352,28 +353,8 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
       {/* 4. Chart & Danger Zone */}
       {!isAdmin && (
         <>
-          <div className="bg-white p-6 rounded-xl border border-orange-200 shadow-sm opacity-60">
-            <h3 className="text-sm font-bold text-orange-600 mb-6">Image Size History (Mocked Data)</h3>
-            <div className="h-64 w-full relative flex items-end">
-              <div className="absolute left-0 top-0 bottom-8 w-12 flex flex-col justify-between text-xs text-gray-500 font-mono text-right pr-2 border-r border-gray-800">
-                <span>700 MB</span>
-                <span>400 MB</span>
-                <span>0</span>
-              </div>
-              <div className="absolute left-12 right-0 bottom-8 border-t border-gray-800"></div>
-              <div className="absolute left-12 right-0 bottom-0 h-8 flex justify-between items-center text-xs text-gray-500 px-4">
-                <span>1</span>
-                <span>2</span>
-                <span>3</span>
-                <span>4</span>
-                <span className="text-right">Successful<br />Deploys Times</span>
-              </div>
-              <svg className="absolute left-12 right-0 top-0 bottom-8 w-[calc(100%-3rem)] h-full" preserveAspectRatio="none">
-                <polyline points="0,150 100,50 250,80 400,70 550,90" fill="none" stroke="#4f46e5" strokeWidth="2" />
-                <circle cx="100" cy="50" r="4" fill="#4f46e5" />
-              </svg>
-            </div>
-          </div>
+          {/* GỌI COMPONENT BIỂU ĐỒ VỪA TẠO */}
+          {projectId && <ResourceMetricsChart projectId={projectId} />}
 
           <div className="bg-red-50 p-6 rounded-xl border border-red-200 flex items-start justify-between">
             <div>

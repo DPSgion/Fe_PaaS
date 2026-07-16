@@ -1,5 +1,11 @@
 import axios from '../../../lib/axios';
 
+export interface ResourceChartData {
+    time: string;
+    cpu: number;
+    ram: number;
+}
+
 export interface ProjectMetricsResponse {
     containerId: string | null;
     imageSize: number | null;
@@ -143,6 +149,12 @@ export const projectApi = {
     // API Lấy thông số giám sát dự án
     getProjectMetrics: async (projectId: string | number): Promise<ProjectMetricsResponse> => {
         const response = await axios.get(`/monitoring/projects/${projectId}/metrics`);
+        return response.data;
+    },
+
+    // API Lấy dữ liệu biểu đồ tài nguyên
+    getResourceChart: async (projectId: string | number): Promise<ResourceChartData[]> => {
+        const response = await axios.get(`/monitoring/projects/${projectId}/metrics/chart`);
         return response.data;
     },
 

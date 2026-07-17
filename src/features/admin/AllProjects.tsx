@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiSearch, FiSquare, FiEye, FiMail, FiAlertTriangle, FiLoader } from 'react-icons/fi';
 import { Button } from '../../components/ui/Button';
-import { adminApi, type AdminProjectListResponse, type ProjectStatus } from './api/projectApi'; // Điều chỉnh đường dẫn import cho đúng dự án của bạn
+import { adminApi, type AdminProjectListResponse, type ProjectStatus } from './api/projectApi';
 
 export const AllProjects = () => {
     // UI Filters State
@@ -16,14 +16,18 @@ export const AllProjects = () => {
     // Server-side Pagination & Data State
     const [projects, setProjects] = useState<AdminProjectListResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [currentPage, setCurrentPage] = useState(1); // Giao diện dùng 1-based
+    const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalElements, setTotalElements] = useState(0);
     const pageSize = 10;
 
-    // Strict Modal State
+    // ==========================================================================
+    // SỬA GẮT Ở ĐÂY: KHÔI PHỤC LẠI CÁC STATE QUẢN LÝ MODAL BỊ THIẾU
+    // ==========================================================================
     const [projectToStop, setProjectToStop] = useState<AdminProjectListResponse | null>(null);
     const [confirmStopText, setConfirmStopText] = useState('');
+    const [isForceStopping, setIsForceStopping] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     // ==========================================================================
     // LOGIC HANDLERS
@@ -47,8 +51,7 @@ export const AllProjects = () => {
         const fetchProjects = async () => {
             setIsLoading(true);
             try {
-                const pageIndex0Based = currentPage - 1; // Backend Spring Data JPA yêu cầu 0-based
-                
+                const pageIndex0Based = currentPage - 1; 
                 const response = await adminApi.getAllProjects(
                     debouncedFilters.project, 
                     debouncedFilters.developer, 
@@ -56,20 +59,17 @@ export const AllProjects = () => {
                     pageIndex0Based, 
                     pageSize
                 );
-
                 setProjects(response.content);
                 setTotalPages(response.totalPages);
                 setTotalElements(response.totalElements);
             } catch (error) {
-                console.error("Lỗi kết nối Backend lấy danh sách dự án:", error);
-                // Bạn có thể hiển thị Toast Notification báo lỗi ở đây
+                console.error("Lỗi lấy danh sách dự án:", error);
             } finally {
                 setIsLoading(false);
             }
         };
-
         fetchProjects();
-    }, [debouncedFilters, currentPage]);
+    }, [debouncedFilters, currentPage, refreshTrigger]);
 
     // 3. Modal Handlers
     const handleOpenStopModal = (project: AdminProjectListResponse) => {
@@ -77,12 +77,23 @@ export const AllProjects = () => {
         setConfirmStopText('');
     };
 
-    const handleExecuteForceStop = () => {
+    const handleExecuteForceStop = async () => {
         if (projectToStop && confirmStopText === projectToStop.projectName) {
-            console.log(`Đang gọi API FORCE STOP cho dự án ID: ${projectToStop.projectId}`);
-            // TODO: Nối API gọi Endpoint Stop Container vào đây
-            setProjectToStop(null);
-            setConfirmStopText('');
+            setIsForceStopping(true);
+            try {
+                const msg = await adminApi.forceStopProject(projectToStop.projectId);
+                window.alert(msg || "Đã ép dừng thành công!");
+                
+                // Đóng Modal và làm mới bảng ngay lập tức
+                setProjectToStop(null);
+                setConfirmStopText('');
+                setRefreshTrigger(prev => prev + 1); 
+            } catch (error: any) {
+                const errMsg = error.response?.data?.message || "Lỗi mạng khi ép dừng dự án.";
+                window.alert(errMsg);
+            } finally {
+                setIsForceStopping(false);
+            }
         }
     };
 
@@ -288,17 +299,27 @@ export const AllProjects = () => {
                         </div>
                         
                         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
-                            <Button variant="outline" onClick={() => setProjectToStop(null)} className="cursor-pointer">Cancel</Button>
+                            <Button 
+                                variant="outline" 
+                                onClick={() => {
+                                    setProjectToStop(null);
+                                    setConfirmStopText('');
+                                }} 
+                                className="cursor-pointer"
+                                disabled={isForceStopping}
+                            >
+                                Cancel
+                            </Button>
                             <Button 
                                 onClick={handleExecuteForceStop}
-                                disabled={confirmStopText !== projectToStop.projectName}
+                                disabled={confirmStopText !== projectToStop.projectName || isForceStopping}
                                 className={`transition-all font-bold ${
                                     confirmStopText === projectToStop.projectName 
                                     ? 'bg-red-600 hover:bg-red-700 text-white shadow-md cursor-pointer' 
                                     : 'bg-gray-300 text-gray-500 cursor-not-allowed border-transparent'
                                 }`}
                             >
-                                Force Stop
+                                {isForceStopping ? <FiLoader className="animate-spin" /> : 'Force Stop'}
                             </Button>
                         </div>
                     </div>

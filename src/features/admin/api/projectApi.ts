@@ -44,5 +44,11 @@ export const adminApi = {
         // Dựa theo Controller @GetMapping("/admin") với class level @RequestMapping("/projects")
         const response = await axios.get('/projects/admin', { params });
         return response.data;
+    },
+
+    forceStopProject: async (projectId: number | string): Promise<string> => {
+        const response = await axios.post(`/deployments/admin/${projectId}/force-stop`);
+        return response.data;
     }
 };
+

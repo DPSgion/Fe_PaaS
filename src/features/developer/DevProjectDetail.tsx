@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { FiArrowLeft, FiRefreshCw, FiSquare, FiTerminal, FiDatabase, FiActivity, FiLoader, FiSettings, FiPlay } from 'react-icons/fi';
+import { FiArrowLeft, FiRefreshCw, FiSquare, FiTerminal, FiDatabase, FiActivity, FiLoader, FiSettings, FiPlay, FiAlertTriangle } from 'react-icons/fi';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { EnvVariablesTab } from './components/EnvVariablesTab';
@@ -9,6 +9,7 @@ import { ProjectSettingsTab } from './components/ProjectSettingsTab';
 import { ResourceMetricsChart } from './components/ResourceMetricsChart';
 import { TabDeployHistory } from './components/TabDeployHistory';
 import { TabTerminalLogs } from './components/TabTerminalLogs';
+import { adminApi, type AdminProjectListResponse, type ProjectStatus } from '../admin/api/projectApi';
 
 interface DevProjectDetailProps {
     mode?: 'developer' | 'admin';
@@ -29,6 +30,30 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
 
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [liveStats, setLiveStats] = useState({ cpu: '0', ram: '0' });
+
+    const [isForceStopModalOpen, setIsForceStopModalOpen] = useState(false);
+    const [confirmStopText, setConfirmStopText] = useState('');
+    const [isForceStopping, setIsForceStopping] = useState(false);
+
+    const handleExecuteForceStop = async () => {
+        if (project && confirmStopText === project.projectName && projectId) {
+            setIsForceStopping(true);
+            try {
+                const msg = await adminApi.forceStopProject(projectId); // Gọi chung hàm API của admin
+                window.alert(msg || "Đã ép dừng thành công!");
+                
+                setIsForceStopModalOpen(false);
+                setConfirmStopText('');
+                fetchDetail(); // Fetch lại dữ liệu chi tiết
+                setRefreshTrigger(prev => prev + 1); // Trigger reload deploy history
+            } catch (error: any) {
+                const errMsg = error.response?.data?.message || "Lỗi khi ép dừng dự án.";
+                window.alert(errMsg);
+            } finally {
+                setIsForceStopping(false);
+            }
+        }
+    };
 
     const fetchDetail = async () => {
         try {
@@ -170,7 +195,15 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
                     </div>
                     <div className="flex gap-3">
                         {isAdmin ? (
-                            <Button className="bg-red-600 hover:bg-red-700 text-white font-bold border-none shadow-sm flex items-center gap-2 cursor-pointer">
+                            <Button 
+                                onClick={() => setIsForceStopModalOpen(true)}
+                                disabled={project.status !== 'RUNNING'}
+                                className={`font-bold border-none shadow-sm flex items-center gap-2 transition-all ${
+                                    project.status === 'RUNNING' 
+                                    ? '!bg-red-600 hover:!bg-red-700 !text-white cursor-pointer' 
+                                    : '!bg-gray-200 hover:!bg-gray-200 !text-gray-400 cursor-not-allowed'
+                                }`}
+                            >
                                 <FiSquare size={16} /> FORCE STOP
                             </Button>
                         ) : (
@@ -314,6 +347,64 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
                     <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-100 hover:border-red-400 cursor-pointer">
                         Delete
                     </Button>
+                </div>
+            )}
+
+            {/* STRICT CONFIRMATION MODAL - FORCE STOP (Dành riêng cho Admin) */}
+            {isAdmin && isForceStopModalOpen && project && (
+                <div className="fixed inset-0 bg-gray-900/60 z-50 flex items-center justify-center p-4 animate-in fade-in backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center gap-3">
+                            <FiAlertTriangle className="text-red-600 text-xl" />
+                            <h3 className="text-lg font-bold text-red-800">Force Stop Container</h3>
+                        </div>
+                        
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm text-gray-700">
+                                You are about to force stop the project <strong className="text-gray-900 font-bold">{project.projectName}</strong>. 
+                                This action will immediately kill the running Docker container and abruptly terminate all active connections.
+                            </p>
+                            
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <p className="text-xs text-gray-600 mb-2">
+                                    To confirm, please type <strong className="font-mono text-black select-all bg-gray-200 px-1 py-0.5 rounded">{project.projectName}</strong> in the field below:
+                                </p>
+                                <input 
+                                    type="text" 
+                                    value={confirmStopText}
+                                    onChange={(e) => setConfirmStopText(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 p-2.5 font-mono text-sm outline-none transition-all"
+                                    placeholder="Type project name here..."
+                                    autoComplete="off"
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => {
+                                    setIsForceStopModalOpen(false);
+                                    setConfirmStopText('');
+                                }} 
+                                className="cursor-pointer"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                onClick={handleExecuteForceStop}
+                                disabled={confirmStopText !== project.projectName || isForceStopping}
+                                className={`transition-all font-bold ${
+                                    confirmStopText === project.projectName 
+                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-md cursor-pointer' 
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed border-transparent'
+                                }`}
+                            >
+                                {isForceStopping ? <FiLoader className="animate-spin" /> : 'Force Stop'}
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

@@ -178,6 +178,7 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
   const [metrics, setMetrics] = useState<ProjectMetricsResponse | null>(null);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [liveStats, setLiveStats] = useState({ cpu: '0', ram: '0' });
 
   const fetchDetail = async () => {
     try {
@@ -196,6 +197,11 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
     }
   };
 
+  useEffect(() => {
+    if (projectId) {
+      fetchDetail();
+    }
+  }, [projectId]);
 
   // Cơ chế Polling tự động kiểm tra trạng thái Build
   useEffect(() => {
@@ -399,7 +405,7 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
           </div>
           <div className="flex">
             <span className="text-gray-500 w-24">CPU:</span>
-            <span className="font-mono text-gray-900">{project.status === 'RUNNING' ? '12 %' : '0 %'}</span>
+            <span className="font-mono text-gray-900">{project.status === 'RUNNING' ? `${liveStats.cpu} %` : '0 %'}</span>
           </div>
           <div className="flex">
             <span className="text-gray-500 w-24">Image:</span>
@@ -409,7 +415,7 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
           </div>
           <div className="flex">
             <span className="text-gray-500 w-24">MEM:</span>
-            <span className="font-mono text-gray-900">{project.status === 'RUNNING' ? '1.2 GB' : '0 GB'}</span>
+            <span className="font-mono text-gray-900">{project.status === 'RUNNING' ? liveStats.ram : '0 MB'}</span>
           </div>
           <div className="flex">
             <span className="text-gray-500 w-24">Container ID:</span>
@@ -469,7 +475,12 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
       {!isAdmin && (
         <>
           {/* GỌI COMPONENT BIỂU ĐỒ VỪA TẠO */}
-          {projectId && <ResourceMetricsChart projectId={projectId} />}
+          {projectId && (
+            <ResourceMetricsChart 
+               projectId={projectId} 
+               onDataUpdate={(cpu: string, ram: string) => setLiveStats({ cpu, ram })} 
+            />
+          )}
 
           <div className="bg-red-50 p-6 rounded-xl border border-red-200 flex items-start justify-between">
             <div>

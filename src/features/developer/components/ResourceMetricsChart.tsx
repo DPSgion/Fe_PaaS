@@ -7,7 +7,13 @@ import axios from '../../../lib/axios';
 // Cấu hình giới hạn số lượng điểm hiển thị trên biểu đồ (VD: 30 điểm)
 const MAX_DATA_POINTS = 30;
 
-export const ResourceMetricsChart = ({ projectId }: { projectId: string }) => {
+interface ResourceMetricsChartProps {
+    projectId: string;
+    onDataUpdate?: (cpu: string, ram: string) => void; // Thêm dòng này
+}
+
+
+export const ResourceMetricsChart = ({ projectId, onDataUpdate }: ResourceMetricsChartProps) => {
     const [data, setData] = useState<ResourceChartData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const eventSourceRef = useRef<EventSource | null>(null);
@@ -25,6 +31,22 @@ export const ResourceMetricsChart = ({ projectId }: { projectId: string }) => {
             setIsLoading(false);
         }
     };
+
+    // Sửa lại đoạn useEffect cuối cùng trong file ResourceMetricsChart.tsx
+    useEffect(() => {
+        if (data && data.length > 0 && onDataUpdate) {
+            const latestPoint = data[data.length - 1];
+            
+            const cpuVal = Number(latestPoint.cpu) || 0;
+            const ramVal = Number(latestPoint.ram) || 0; 
+            
+            onDataUpdate(
+                cpuVal.toFixed(2), 
+                `${ramVal} MB` 
+            );
+        }
+    // SỬA GẮT Ở ĐÂY: Xóa onDataUpdate, chỉ giữ lại [data]
+    }, [data]);
 
     // 2. Setup luồng thời gian thực (SSE)
     useEffect(() => {

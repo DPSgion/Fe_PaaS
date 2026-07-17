@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { FiActivity, FiRefreshCw } from 'react-icons/fi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { projectApi, type ResourceChartData } from '../api/projectApi';
+import axios from '../../../lib/axios';
 
 // Cấu hình giới hạn số lượng điểm hiển thị trên biểu đồ (VD: 30 điểm)
 const MAX_DATA_POINTS = 30;
@@ -33,10 +34,10 @@ export const ResourceMetricsChart = ({ projectId }: { projectId: string }) => {
         fetchInitialData();
 
         // Lấy Base URL từ biến môi trường của Vite, hoặc fallback về localhost:8080
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        const baseURL = axios.defaults.baseURL || 'http://localhost:8080';
 
         // Nối thẳng vào endpoint thực tế của Spring Boot
-        const sseUrl = `${baseUrl}/monitoring/projects/${projectId}/metrics/chart/stream`;
+        const sseUrl = `${baseURL}/monitoring/projects/${projectId}/metrics/chart/stream`;
 
         // withCredentials vẫn bắt buộc phải có để gửi Cookie
         const sse = new EventSource(sseUrl, { withCredentials: true });

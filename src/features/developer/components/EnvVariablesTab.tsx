@@ -120,15 +120,18 @@ export const EnvVariablesTab = ({ projectId }: EnvVariablesTabProps) => {
             </div>
 
             {/* Bảng Danh sách Biến (Chỉ hiển thị, không có input) */}
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-100 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col max-h-[500px]">
+                
+                {/* SỬA GẮT: Thêm sticky, top-0 và z-10 để ghim Header trên cùng */}
+                <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-10 shadow-sm">
                     <div className="col-span-4">Key</div>
                     <div className="col-span-5">Value</div>
                     <div className="col-span-1 text-center">Type</div>
                     <div className="col-span-2 text-right pr-4">Actions</div>
                 </div>
 
-                <div className="divide-y divide-gray-100">
+                {/* SỬA GẮT: Thêm overflow-y-auto để tạo thanh cuộn dọc cho phần nội dung */}
+                <div className="divide-y divide-gray-100 overflow-y-auto">
                     {envVars.length === 0 ? (
                         <div className="p-8 text-center text-gray-500">Chưa có biến môi trường nào được cấu hình.</div>
                     ) : (

@@ -1,5 +1,23 @@
 import axios from '../../../lib/axios';
 
+export interface PageResponse<T> {
+    content: T[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    last: boolean;
+}
+
+export interface DeploymentHistoryResponse {
+    id: number;
+    startTime: string;
+    buildDuration: string;
+    status: string;
+    commitSha: string;
+    commitMessage: string;
+}
+
 export interface ResourceChartData {
     time: string;
     cpu: number;
@@ -158,12 +176,15 @@ export const projectApi = {
         return response.data;
     },
 
-    // API Mock cho Lịch sử Deploy (Chờ Backend làm xong API thật thì đổi đường dẫn)
-    getDeployHistories: async (projectId: string | number) => {
-        // Tạm thời mock data để giao diện lên hình
-        return [
-            { id: 1, commitSha: 'a1b2c3d4', message: 'feat: update payment gateway', status: 'Success', buildTime: '2m 15s', time: '12/05/2026 14:30' },
-            { id: 2, commitSha: 'f9e8d7c6', message: 'fix: resolve memory leak issue', status: 'Failed', buildTime: '1m 50s', time: '11/05/2026 09:15' }
-        ];
+    // API lấy file log tĩnh sau khi đã build xong
+    getStaticDeployLog: async (deploymentId: number): Promise<string> => {
+        const response = await axios.get(`/deployments/${deploymentId}/logs`);
+        return response.data;
+    },
+
+    // API Lấy lịch sử Deploy
+    getDeployHistories: async (projectId: string | number, page: number = 0, size: number = 20): Promise<PageResponse<DeploymentHistoryResponse>> => {
+        const response = await axios.get(`/deployments/project/${projectId}/histories?page=${page}&size=${size}`);
+        return response.data;
     }
 };

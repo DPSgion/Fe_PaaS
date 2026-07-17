@@ -1,51 +1,139 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { FiArrowLeft, FiRefreshCw, FiSquare, FiTerminal, FiDatabase, FiActivity, FiLoader, FiSettings, FiPlay } from 'react-icons/fi';
+import { FiArrowLeft, FiRefreshCw, FiSquare, FiTerminal, FiDatabase, FiActivity, FiLoader, FiSettings, FiPlay, FiEye } from 'react-icons/fi';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { EnvVariablesTab } from './components/EnvVariablesTab';
 import { projectApi, type ProjectDetailResponse, type ProjectMetricsResponse } from './api/projectApi';
 import { ProjectSettingsTab } from './components/ProjectSettingsTab';
 import { ResourceMetricsChart } from './components/ResourceMetricsChart';
+import { DeployLogViewer } from './components/DeployLogViewer';
 
 // ============================================================================
 // LOCAL COMPONENTS (MOCK DATA)
 // ============================================================================
 
-const TabDeployHistory = ({ projectId }: { projectId: string }) => {
+const TabDeployHistory = ({ projectId, refreshTrigger }: { projectId: string, refreshTrigger: number }) => {
   const [histories, setHistories] = useState<any[]>([]);
+  const [page, setPage] = useState(0);
+  const [isLast, setIsLast] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const [selectedDeployment, setSelectedDeployment] = useState<{ id: number, status: string } | null>(null);
 
+  const fetchHistories = async (pageNumber: number) => {
+    if (isLoading) return;
+    setIsLoading(true);
+    try {
+      const data = await projectApi.getDeployHistories(projectId, pageNumber, 20);
+      if (pageNumber === 0) {
+        setHistories(data.content);
+      } else {
+        // Nối thêm dữ liệu mới vào mảng cũ khi cuộn
+        setHistories(prev => [...prev, ...data.content]);
+      }
+      setIsLast(data.last);
+    } catch (error) {
+      console.error("Lỗi lấy lịch sử", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Chạy lần đầu khi load trang VÀ chạy lại khi nhận được tín hiệu refresh
   useEffect(() => {
-    projectApi.getDeployHistories(projectId).then(setHistories);
-  }, [projectId]);
+    setPage(0);        // Đưa về trang đầu tiên
+    fetchHistories(0); // Lấy lại dữ liệu mới nhất
+  }, [projectId, refreshTrigger]); // Theo dõi cả 2 biến
+
+  // Chạy khi biến page thay đổi (do cuộn chuột)
+  useEffect(() => {
+    if (page > 0) fetchHistories(page);
+  }, [page]);
+
+  // Bắt sự kiện lăn chuột
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+    // Nếu cuộn cách đáy 50px thì gọi API tiếp
+    if (scrollHeight - scrollTop <= clientHeight + 50 && !isLoading && !isLast) {
+      setPage(prev => prev + 1);
+    }
+  };
+
+  // Hàm render màu sắc gắt cho Status
+  const renderStatus = (status: string) => {
+    let colorClass = "bg-gray-100 text-gray-700 border-gray-300";
+    if (status === 'SUCCESS') colorClass = "bg-green-100 text-green-700 border-green-300";
+    if (status === 'FAILED') colorClass = "bg-red-100 text-red-700 border-red-300";
+    if (status === 'BUILDING') colorClass = "bg-blue-100 text-blue-700 border-blue-300 animate-pulse";
+    
+    return <span className={`font-bold text-[10px] px-2 py-1 rounded border uppercase ${colorClass}`}>{status}</span>;
+  };
 
   return (
     <div className="animate-in fade-in duration-300">
-      <table className="w-full text-sm text-left text-gray-600">
-        <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th className="px-6 py-3 w-48">Time (Time to build)</th>
-            <th className="px-6 py-3">Event (Deploy status + commit_sha)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {histories.map((item) => (
-            <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
-              <td className="px-6 py-4 align-top">
-                <div className="font-medium text-gray-900">{item.time}</div>
-                <div className="text-xs text-gray-500 mt-1">Build: {item.buildTime}</div>
-              </td>
-              <td className="px-6 py-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <StatusBadge status={item.status} />
-                  <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{item.commitSha}</span>
-                </div>
-                <p className="text-gray-700 mt-2">{item.message}</p>
-              </td>
+      {/* Khung giới hạn chiều cao 500px, hiện thanh cuộn và gắn sự kiện onScroll */}
+      <div 
+        className="max-h-[500px] overflow-y-auto" 
+        onScroll={handleScroll}
+      >
+        <table className="w-full text-sm text-left text-gray-600 relative">
+          <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+            <tr>
+              <th className="px-6 py-4 w-48 font-bold">Time</th>
+              <th className="px-6 py-4 font-bold">Event (Status + Commit)</th>
+              <th className="px-6 py-4 text-right font-bold">Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {histories.map((item) => (
+              <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 align-top">
+                  <div className="font-medium text-gray-900">
+                    {item.startTime ? new Date(item.startTime).toLocaleString('vi-VN') : 'Đang khởi tạo...'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Build: {item.buildDuration}</div>
+                </td>
+                <td className="px-6 py-4 align-top">
+                  <div className="flex items-center gap-3 mb-1">
+                    {renderStatus(item.status)}
+                    <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-500 border border-gray-200">
+                      {item.commitSha}
+                    </span>
+                  </div>
+                  <p className="text-gray-800 mt-2 font-medium">{item.commitMessage}</p>
+                </td>
+                <td className="px-6 py-4 align-top text-right">
+                  <button
+                    onClick={() => setSelectedDeployment({ id: item.id, status: item.status })}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-100 hover:bg-indigo-200 px-4 py-2 rounded shadow-sm transition-all cursor-pointer"
+                  >
+                    <FiEye size={14} /> View Log
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        
+        {/* Hiển thị biểu tượng loading khi cuộn xuống */}
+        {isLoading && (
+          <div className="text-center py-4 text-gray-400 text-sm flex items-center justify-center gap-2">
+            <FiLoader className="animate-spin" /> Đang tải thêm dữ liệu...
+          </div>
+        )}
+      </div>
+
+      <DeployLogViewer
+        isOpen={selectedDeployment !== null}
+        onClose={() => setSelectedDeployment(null)}
+        deploymentId={selectedDeployment?.id || null}
+        status={selectedDeployment?.status || 'STOPPED'}
+        onDeployFinished={() => {
+          setPage(0);
+          fetchHistories(0);
+        }}
+      />
     </div>
   );
 };
@@ -89,6 +177,8 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
   const [isStarting, setIsStarting] = useState(false);
   const [metrics, setMetrics] = useState<ProjectMetricsResponse | null>(null);
 
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   const fetchDetail = async () => {
     try {
       // Dùng Promise.all để lấy dữ liệu song song
@@ -107,9 +197,23 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
   };
 
 
+  // Cơ chế Polling tự động kiểm tra trạng thái Build
   useEffect(() => {
-    if (projectId) fetchDetail();
-  }, [projectId]);
+    let interval: ReturnType<typeof setInterval>;
+
+    // Nếu dự án đang BUILDING, cứ 3 giây tự động gọi API 1 lần
+    if (project?.status === 'BUILDING') {
+      interval = setInterval(() => {
+        fetchDetail(); // Cập nhật Header (Đổi status, Container ID, RAM...)
+        setRefreshTrigger(prev => prev + 1); // Cập nhật luôn bảng lịch sử bên dưới
+      }, 3000); 
+    }
+
+    // Dọn dẹp interval khi component unmount hoặc khi trạng thái đã đổi xong
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [project?.status]);
 
   // Hàm xử lý khi bấm nút Redeploy
   const handleRedeploy = async () => {
@@ -118,7 +222,12 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
     setIsDeploying(true);
     try {
       const message = await projectApi.triggerDeploy(projectId);
-      window.alert(message); // Hiện thông báo "Tiến trình triển khai đang được chạy ngầm..."
+      window.alert(message); 
+      
+      // SỬA GẮT: Thêm 2 dòng này để cập nhật UI ngay lập tức
+      fetchDetail(); 
+      setRefreshTrigger(prev => prev + 1); 
+      
     } catch (error: any) {
       const msg = error.response?.data?.message || "Lỗi khi kích hoạt deploy.";
       window.alert(msg);
@@ -133,8 +242,11 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
     setIsRestarting(true);
     try {
       const message = await projectApi.restartProject(projectId);
-      window.alert(message); // Hiển thị thông báo thành công
-      fetchDetail(); // Gọi lại hàm fetchDetail để cập nhật trạng thái UI sang RUNNING
+      window.alert(message);
+
+      fetchDetail(); 
+      setRefreshTrigger(prev => prev + 1);
+
     } catch (error: any) {
       // Hứng lỗi (chưa từng deploy, hoặc lén xóa container trên VPS)
       const msg = error.response?.data?.message || "Lỗi khi khởi động lại dự án.";
@@ -152,7 +264,9 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
     try {
       const message = await projectApi.stopProject(projectId);
       window.alert(message);
-      fetchDetail(); // Gọi lại để đổi StatusBadge thành STOPPED
+      fetchDetail(); 
+      setRefreshTrigger(prev => prev + 1); 
+
     } catch (error: any) {
       const msg = error.response?.data?.message || "Lỗi khi dừng dự án.";
       window.alert(msg);
@@ -168,7 +282,8 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
     try {
       const message = await projectApi.startProject(projectId);
       window.alert(message);
-      fetchDetail(); // Gọi lại để đổi StatusBadge thành RUNNING
+      fetchDetail(); 
+      setRefreshTrigger(prev => prev + 1); 
     } catch (error: any) {
       const msg = error.response?.data?.message || "Lỗi khi khởi động dự án.";
       window.alert(msg);
@@ -337,7 +452,7 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
         </div>
 
         <div className="bg-white min-h-[400px]">
-          {activeTab === 'deploy' && projectId && <TabDeployHistory projectId={projectId} />}
+          {activeTab === 'deploy' && projectId && <TabDeployHistory projectId={projectId} refreshTrigger={refreshTrigger} />}
           {activeTab === 'env' && projectId && <EnvVariablesTab projectId={projectId} />}
           {activeTab === 'logs' && <TabTerminalLogs />}
           {activeTab === 'settings' && project && projectId && (

@@ -294,27 +294,27 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
                 </div>
             </div>
 
-            {/* 4. Chart & Danger Zone */}
+            {/* 4. Chart (Ai cũng được xem) */}
+            {projectId && (
+                <ResourceMetricsChart
+                    projectId={projectId}
+                    onDataUpdate={(cpu: string, ram: string) => setLiveStats({ cpu, ram })}
+                />
+            )}
+
+            {/* 5. Danger Zone (Chỉ ẩn cái này với Admin thôi) */}
             {!isAdmin && (
-                <>
-                    {projectId && (
-                        <ResourceMetricsChart
-                            projectId={projectId}
-                            onDataUpdate={(cpu: string, ram: string) => setLiveStats({ cpu, ram })}
-                        />
-                    )}
-                    <div className="bg-red-50 p-6 rounded-xl border border-red-200 flex items-start justify-between">
-                        <div>
-                            <h3 className="text-sm font-bold text-red-800">Delete Project</h3>
-                            <p className="text-xs text-red-600 mt-1 max-w-md">
-                                Project must be in <strong>stop status</strong>. Send email to confirm and developer need to approve.
-                            </p>
-                        </div>
-                        <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-100 hover:border-red-400 cursor-pointer">
-                            Delete
-                        </Button>
+                <div className="bg-red-50 p-6 rounded-xl border border-red-200 flex items-start justify-between">
+                    <div>
+                        <h3 className="text-sm font-bold text-red-800">Delete Project</h3>
+                        <p className="text-xs text-red-600 mt-1 max-w-md">
+                            Project must be in <strong>stop status</strong>. Send email to confirm and developer need to approve.
+                        </p>
                     </div>
-                </>
+                    <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-100 hover:border-red-400 cursor-pointer">
+                        Delete
+                    </Button>
+                </div>
             )}
         </div>
     );

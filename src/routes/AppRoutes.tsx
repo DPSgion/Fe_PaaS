@@ -50,6 +50,8 @@ export const AppRoutes = () => {
             <Route path="/admin/users-management" element={<UsersManagement />} />
             <Route path="/admin/all-projects" element={<AllProjects />} />
             <Route path="/admin/audit-logs" element={<AuditLogManagement />} />
+            
+            <Route path="/admin/projects/:projectId" element={<DevProjectDetail mode="admin" />} />
           </Route>
         </Route>
 

@@ -283,7 +283,7 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
                 <div className="bg-white min-h-[400px]">
                     {activeTab === 'deploy' && projectId && <TabDeployHistory projectId={projectId} refreshTrigger={refreshTrigger} />}
                     {activeTab === 'env' && projectId && <EnvVariablesTab projectId={projectId} />}
-                    {activeTab === 'logs' && <TabTerminalLogs />}
+                    {activeTab === 'logs' && projectId && <TabTerminalLogs projectId={projectId} />}
                     {activeTab === 'settings' && project && projectId && (
                         <ProjectSettingsTab
                             projectId={projectId}

@@ -152,24 +152,26 @@ export const projectApi = {
     },
 
     triggerDeploy: async (projectId: string | number): Promise<string> => {
-        const response = await axios.post(`/deployments/${projectId}/deploy`);
-        return response.data; // Trả về thông báo thành công
+        // Deploy/Build có thể kéo dài, nới lỏng cho phép đợi tối đa 2 phút (120000ms)
+        const response = await axios.post(`/deployments/${projectId}/deploy`, null, { timeout: 120000 });
+        return response.data; 
     },
 
     restartProject: async (projectId: string | number): Promise<string> => {
-        const response = await axios.post(`/deployments/${projectId}/restart`);
+        // Restart cần thời gian stop rồi start lại, cho phép đợi 60 giây
+        const response = await axios.post(`/deployments/${projectId}/restart`, null, { timeout: 60000 });
         return response.data;
     },
 
     // API Dừng dự án
     stopProject: async (projectId: string | number): Promise<string> => {
-        const response = await axios.post(`/deployments/${projectId}/stop`);
+        const response = await axios.post(`/deployments/${projectId}/stop`, null, { timeout: 60000 });
         return response.data;
     },
 
     // API Khởi động dự án
     startProject: async (projectId: string | number): Promise<string> => {
-        const response = await axios.post(`/deployments/${projectId}/start`);
+        const response = await axios.post(`/deployments/${projectId}/start`, null, { timeout: 60000 });
         return response.data;
     },
 
@@ -194,6 +196,21 @@ export const projectApi = {
     // API Lấy lịch sử Deploy
     getDeployHistories: async (projectId: string | number, page: number = 0, size: number = 20): Promise<PageResponse<DeploymentHistoryResponse>> => {
         const response = await axios.get(`/deployments/project/${projectId}/histories?page=${page}&size=${size}`);
+        return response.data;
+    },
+
+    // API Yêu cầu xóa dự án (Gửi OTP)
+    requestDeleteProject: async (projectId: string | number): Promise<string> => {
+        const response = await axios.post(`/projects/${projectId}/delete/request`);
+        return response.data;
+    },
+
+    // API Xác nhận xóa dự án bằng OTP
+    confirmDeleteProject: async (projectId: string | number, otpCode: string): Promise<string> => {
+        // Lưu ý: Request DELETE trong Axios muốn gửi body thì phải bọc trong config { data: ... }
+        const response = await axios.delete(`/projects/${projectId}/delete/confirm`, { 
+            data: { otpCode } 
+        });
         return response.data;
     }
 };

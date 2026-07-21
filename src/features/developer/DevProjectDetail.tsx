@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiRefreshCw, FiSquare, FiTerminal, FiDatabase, FiActivity, FiLoader, FiSettings, FiPlay, FiAlertTriangle } from 'react-icons/fi';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -9,7 +9,7 @@ import { ProjectSettingsTab } from './components/ProjectSettingsTab';
 import { ResourceMetricsChart } from './components/ResourceMetricsChart';
 import { TabDeployHistory } from './components/TabDeployHistory';
 import { TabTerminalLogs } from './components/TabTerminalLogs';
-import { adminApi, type AdminProjectListResponse, type ProjectStatus } from '../admin/api/projectApi';
+import { adminApi } from '../admin/api/projectApi';
 
 interface DevProjectDetailProps {
     mode?: 'developer' | 'admin';
@@ -18,6 +18,7 @@ interface DevProjectDetailProps {
 export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) => {
     const isAdmin = mode === 'admin';
     const { projectId } = useParams();
+    const navigate = useNavigate(); // SỬA GẮT: Thêm hook này để đá về trang chủ sau khi xóa
     const [activeTab, setActiveTab] = useState<'deploy' | 'env' | 'logs' | 'settings'>('deploy');
 
     const [project, setProject] = useState<ProjectDetailResponse | null>(null);
@@ -31,30 +32,20 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [liveStats, setLiveStats] = useState({ cpu: '0', ram: '0' });
 
+    // --- STATES: FORCE STOP (ADMIN) ---
     const [isForceStopModalOpen, setIsForceStopModalOpen] = useState(false);
     const [confirmStopText, setConfirmStopText] = useState('');
     const [isForceStopping, setIsForceStopping] = useState(false);
 
-    const handleExecuteForceStop = async () => {
-        if (project && confirmStopText === project.projectName && projectId) {
-            setIsForceStopping(true);
-            try {
-                const msg = await adminApi.forceStopProject(projectId); // Gọi chung hàm API của admin
-                window.alert(msg || "Đã ép dừng thành công!");
-                
-                setIsForceStopModalOpen(false);
-                setConfirmStopText('');
-                fetchDetail(); // Fetch lại dữ liệu chi tiết
-                setRefreshTrigger(prev => prev + 1); // Trigger reload deploy history
-            } catch (error: any) {
-                const errMsg = error.response?.data?.message || "Lỗi khi ép dừng dự án.";
-                window.alert(errMsg);
-            } finally {
-                setIsForceStopping(false);
-            }
-        }
-    };
+    // --- STATES: DELETE PROJECT (DEVELOPER) ---
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [otpCode, setOtpCode] = useState('');
+    const [isRequestingDelete, setIsRequestingDelete] = useState(false);
+    const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
+    // =========================================================
+    // HANDLERS
+    // =========================================================
     const fetchDetail = async () => {
         try {
             const [projectData, metricsData] = await Promise.all([
@@ -150,6 +141,62 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
             window.alert(msg);
         } finally {
             setIsStarting(false);
+        }
+    };
+
+    const handleExecuteForceStop = async () => {
+        if (project && confirmStopText === project.projectName && projectId) {
+            setIsForceStopping(true);
+            try {
+                const msg = await adminApi.forceStopProject(projectId);
+                window.alert(msg || "Đã ép dừng thành công!");
+                setIsForceStopModalOpen(false);
+                setConfirmStopText('');
+                fetchDetail();
+                setRefreshTrigger(prev => prev + 1);
+            } catch (error: any) {
+                const errMsg = error.response?.data?.message || "Lỗi khi ép dừng dự án.";
+                window.alert(errMsg);
+            } finally {
+                setIsForceStopping(false);
+            }
+        }
+    };
+
+    // --- SỬA GẮT: LOGIC GỌI API DELETE ---
+    const handleRequestDelete = async () => {
+        if (!projectId || project?.status !== 'STOPPED') return;
+        if (!window.confirm(`XÁC NHẬN: Bạn muốn yêu cầu xóa dự án ${project.projectName}? Hệ thống sẽ gửi email OTP cho bạn.`)) return;
+        
+        setIsRequestingDelete(true);
+        try {
+            const msg = await projectApi.requestDeleteProject(projectId);
+            window.alert(msg); // Hiện popup "Mã xác nhận đã gửi đến email..."
+            setIsDeleteModalOpen(true);
+        } catch (error: any) {
+            const errMsg = error.response?.data?.message || "Lỗi khi yêu cầu xóa dự án.";
+            window.alert(errMsg);
+        } finally {
+            setIsRequestingDelete(false);
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!projectId || otpCode.trim().length < 6) return;
+        
+        setIsConfirmingDelete(true);
+        try {
+            const msg = await projectApi.confirmDeleteProject(projectId, otpCode);
+            window.alert(msg || "Dự án đã được xóa thành công!");
+            setIsDeleteModalOpen(false);
+            
+            // Đá người dùng về trang danh sách vì dự án hiện tại đã "bốc hơi"
+            navigate('/my-projects', { replace: true });
+        } catch (error: any) {
+            const errMsg = error.response?.data?.message || "Mã xác nhận không hợp lệ hoặc đã hết hạn.";
+            window.alert(errMsg);
+        } finally {
+            setIsConfirmingDelete(false);
         }
     };
 
@@ -327,7 +374,7 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
                 </div>
             </div>
 
-            {/* 4. Chart (Ai cũng được xem) */}
+            {/* 4. Chart */}
             {projectId && (
                 <ResourceMetricsChart
                     projectId={projectId}
@@ -335,20 +382,34 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
                 />
             )}
 
-            {/* 5. Danger Zone (Chỉ ẩn cái này với Admin thôi) */}
+            {/* 5. Danger Zone (Chỉ ẩn cái này với Admin) */}
             {!isAdmin && (
                 <div className="bg-red-50 p-6 rounded-xl border border-red-200 flex items-start justify-between">
                     <div>
                         <h3 className="text-sm font-bold text-red-800">Delete Project</h3>
                         <p className="text-xs text-red-600 mt-1 max-w-md">
-                            Project must be in <strong>stop status</strong>. Send email to confirm and developer need to approve.
+                            Project must be in <strong className="uppercase">stopped</strong> status. We will send an OTP email to confirm this action.
                         </p>
                     </div>
-                    <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-100 hover:border-red-400 cursor-pointer">
-                        Delete
+                    {/* SỬA GẮT: Nối API Request Delete và khóa nút nếu không phải STOPPED */}
+                    <Button 
+                        variant="outline" 
+                        onClick={handleRequestDelete}
+                        disabled={project.status !== 'STOPPED' || isRequestingDelete}
+                        className={`font-semibold border-red-300 transition-colors ${
+                            project.status === 'STOPPED' 
+                            ? 'text-red-600 hover:bg-red-600 hover:text-white cursor-pointer' 
+                            : 'text-red-300 bg-red-50 cursor-not-allowed'
+                        }`}
+                    >
+                        {isRequestingDelete ? <FiLoader className="animate-spin" /> : 'Delete Project'}
                     </Button>
                 </div>
             )}
+
+            {/* ========================================================= */}
+            {/* MODAL KHU VỰC */}
+            {/* ========================================================= */}
 
             {/* STRICT CONFIRMATION MODAL - FORCE STOP (Dành riêng cho Admin) */}
             {isAdmin && isForceStopModalOpen && project && (
@@ -402,6 +463,64 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
                                 }`}
                             >
                                 {isForceStopping ? <FiLoader className="animate-spin" /> : 'Force Stop'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* SỬA GẮT: OTP CONFIRMATION MODAL - DELETE PROJECT (Dành cho Developer) */}
+            {!isAdmin && isDeleteModalOpen && project && (
+                <div className="fixed inset-0 bg-gray-900/60 z-50 flex items-center justify-center p-4 animate-in fade-in backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center gap-3">
+                            <FiAlertTriangle className="text-red-600 text-xl" />
+                            <h3 className="text-lg font-bold text-red-800">Confirm Delete Project</h3>
+                        </div>
+                        
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm text-gray-700">
+                                We have sent a 6-digit OTP code to your email. Please check your inbox and enter the code below to permanently delete <strong className="text-gray-900 font-bold">{project.projectName}</strong>.
+                            </p>
+                            
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <label className="block text-xs font-bold text-gray-700 mb-2 uppercase tracking-wide">OTP Code</label>
+                                <input 
+                                    type="text" 
+                                    value={otpCode}
+                                    onChange={(e) => setOtpCode(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 p-3 font-mono text-center text-2xl tracking-[0.5em] outline-none transition-all placeholder:text-gray-300"
+                                    placeholder="------"
+                                    maxLength={6}
+                                    autoComplete="off"
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => {
+                                    setIsDeleteModalOpen(false);
+                                    setOtpCode('');
+                                }} 
+                                className="cursor-pointer"
+                                disabled={isConfirmingDelete}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                onClick={handleConfirmDelete}
+                                disabled={otpCode.length < 6 || isConfirmingDelete}
+                                className={`transition-all font-bold flex items-center justify-center min-w-[140px] ${
+                                    otpCode.length >= 6
+                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-md cursor-pointer' 
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed border-transparent'
+                                }`}
+                            >
+                                {isConfirmingDelete ? <FiLoader className="animate-spin mr-2" /> : null}
+                                {isConfirmingDelete ? 'Deleting...' : 'Confirm Delete'}
                             </Button>
                         </div>
                     </div>

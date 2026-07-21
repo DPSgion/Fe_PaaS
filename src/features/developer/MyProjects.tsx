@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiPlus, FiLoader, FiMoreVertical, FiBox } from 'react-icons/fi';
+import { FiPlus, FiLoader, FiMoreVertical, FiBox, FiSearch } from 'react-icons/fi';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { projectApi, type ProjectListResponse } from './api/projectApi';
@@ -10,10 +10,37 @@ export const MyProjects = () => {
     const [projects, setProjects] = useState<ProjectListResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    // ==========================================================================
+    // FILTER & SEARCH STATES (ĐÃ GẮN SESSION STORAGE)
+    // ==========================================================================
+    // Khởi tạo state bằng cách đọc từ bộ nhớ tạm (nếu có), không có thì lấy mặc định
+    const [searchInput, setSearchInput] = useState(() => sessionStorage.getItem('my_projects_search') || '');
+    const [debouncedSearch, setDebouncedSearch] = useState(() => sessionStorage.getItem('my_projects_search') || '');
+    const [statusFilter, setStatusFilter] = useState(() => sessionStorage.getItem('my_projects_status') || 'ALL');
+
+    // Lắng nghe sự thay đổi và tự động ghi đè xuống bộ nhớ tạm
+    useEffect(() => {
+        sessionStorage.setItem('my_projects_search', debouncedSearch);
+        sessionStorage.setItem('my_projects_status', statusFilter);
+    }, [debouncedSearch, statusFilter]);
+
+    // Debounce Logic cho Search
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(searchInput);
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [searchInput]);
+
+    // ==========================================================================
+    // API CALLS
+    // ==========================================================================
     useEffect(() => {
         const fetchProjects = async () => {
+            setIsLoading(true);
             try {
-                const data = await projectApi.getMyProjects();
+                // Truyền tham số search và filter xuống API
+                const data = await projectApi.getMyProjects(debouncedSearch, statusFilter);
                 setProjects(data);
             } catch (error) {
                 console.error('Lỗi khi tải danh sách dự án:', error);
@@ -22,13 +49,13 @@ export const MyProjects = () => {
             }
         };
         fetchProjects();
-    }, []);
+    }, [debouncedSearch, statusFilter]); // Tự động gọi lại khi bộ lọc thay đổi
 
-    // THUẬT TOÁN GOM NHÓM Ở FRONTEND: 
-    // Chuyển mảng phẳng thành Object: { "Project A": [nhánh main, nhánh dev], "Project B": [...] }
+    // ==========================================================================
+    // GOM NHÓM DỮ LIỆU
+    // ==========================================================================
     const groupedProjects = useMemo(() => {
         return projects.reduce((acc, curr) => {
-            // Chuẩn hóa tên để gom nhóm chính xác
             const groupName = curr.projectName; 
             if (!acc[groupName]) {
                 acc[groupName] = [];
@@ -53,53 +80,96 @@ export const MyProjects = () => {
         return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
+    // Kiểm tra xem User đang dùng bộ lọc hay không
+    const isFiltering = debouncedSearch !== '' || statusFilter !== 'ALL';
+
     return (
         <div className="max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
-            {/* Header giữ nguyên */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+            {/* 1. Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
                         Good Morning, Phuong 👋
                     </h1>
-                    <p className="text-gray-500 mt-1">This is your projects</p>
+                    <p className="text-gray-500 mt-1">These are your projects</p>
                 </div>
                 <Button 
                     variant="primary" 
                     onClick={() => navigate('/projects/new')}
                     className="cursor-pointer shadow-md hover:shadow-lg transition-all"
                 >
-                    <FiPlus className="mr-1" /> Create New Projects
+                    <FiPlus className="mr-1" /> Create New Project
                 </Button>
             </div>
 
-            {/* Content Area */}
+            {/* 2. Toolbar: Search & Filter */}
+            {/* Chỉ hiện Toolbar nếu đã từng có dự án, hoặc đang trong chế độ lọc */}
+            {(projects.length > 0 || isFiltering) && (
+                <div className="flex flex-col sm:flex-row gap-4 mb-8 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    {/* Search Input */}
+                    <div className="relative flex-1">
+                        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search by project name..."
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        />
+                    </div>
+                    
+                    {/* Filter & Clear Action */}
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="flex-1 sm:w-auto border border-gray-300 rounded-lg py-2 px-4 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer transition-all min-w-[180px] font-medium"
+                        >
+                            <option value="ALL">All Status</option>
+                            <option value="RUNNING" className="text-green-600 font-bold">Running</option>
+                            <option value="STOPPED" className="text-gray-500 font-bold">Stopped</option>
+                            <option value="BUILDING" className="text-blue-600 font-bold">Building</option>
+                            <option value="CRASHED" className="text-red-600 font-bold">Failed</option>
+                        </select>
+
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setSearchInput('');
+                                setDebouncedSearch('');
+                                setStatusFilter('ALL');
+                                sessionStorage.removeItem('my_projects_search');
+                                sessionStorage.removeItem('my_projects_status');
+                            }}
+                            className="px-4 font-semibold border-gray-300 text-gray-600 hover:text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors cursor-pointer"
+                        >
+                            Clear
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {/* 3. Content Area */}
             {isLoading ? (
-                <div className="flex flex-col items-center justify-center h-64 text-gray-400 gap-3">
+                <div className="flex flex-col items-center justify-center h-64 text-gray-400 gap-3 bg-white rounded-xl border border-gray-200 shadow-sm">
                     <FiLoader className="animate-spin" size={32} />
                     <p className="text-sm font-medium">Đang tải danh sách dự án...</p>
                 </div>
             ) : projects.length > 0 ? (
-                
-                // KHU VỰC RENDER ĐÃ ĐƯỢC CHIA KHU
+                // KHU VỰC RENDER DỰ ÁN
                 <div className="space-y-12">
                     {Object.entries(groupedProjects).map(([projectName, envs]) => (
                         <div key={projectName} className="space-y-4">
-                            {/* Tên Khu vực (Project Name gốc) */}
                             <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+                                {/* SỬA GẮT: Đã xóa nút [ Cài đặt dự án ] ở đây */}
                                 <h2 className="text-xl font-bold text-gray-900 capitalize">{projectName}</h2>
-                                <button className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors uppercase tracking-wider">
-                                    [ Cài đặt dự án ]
-                                </button>
                             </div>
 
-                            {/* Danh sách các nhánh trượt ngang (Horizontal Scroll) */}
-                            {/* Dùng snap-x để vuốt mượt trên điện thoại, scrollbar-hide để giấu thanh cuộn xấu xí */}
                             <div className="flex overflow-x-auto snap-x gap-6 pb-4 pt-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
                                 {envs.map((env) => (
                                     <div 
                                         key={env.id}
                                         onClick={() => navigate(`/project/${env.id}/env/default`)}
-                                        // Cố định chiều rộng thẻ và thiết lập điểm neo (snap-start)
                                         className="min-w-[320px] max-w-[320px] shrink-0 snap-start bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer group relative"
                                     >
                                         <button className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-900 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -107,12 +177,10 @@ export const MyProjects = () => {
                                         </button>
 
                                         <div className="space-y-4 text-sm">
-                                            {/* Trạng thái đập vào mắt đầu tiên */}
                                             <div className="flex items-center">
                                                 <StatusBadge status={formatStatus(env.status)} />
                                             </div>
 
-                                            {/* Thông tin cốt lõi */}
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-gray-500">Domain:</span>
@@ -140,10 +208,20 @@ export const MyProjects = () => {
                         </div>
                     ))}
                 </div>
-
+            ) : isFiltering ? (
+                // State: Trống do lọc không ra kết quả
+                <div className="bg-white border border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center py-20 text-center px-4 shadow-sm">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-200">
+                        <FiSearch size={28} className="text-gray-400" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900">Không tìm thấy dự án</h3>
+                    <p className="text-gray-500 mt-2 max-w-sm">
+                        Không có dự án nào khớp với từ khóa hoặc bộ lọc của bạn. Hãy thử đổi điều kiện lọc.
+                    </p>
+                </div>
             ) : (
-                // Empty State giữ nguyên
-                <div className="bg-white border border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center py-20 text-center px-4">
+                // State: Trống hoàn toàn (Chưa tạo dự án nào)
+                <div className="bg-white border border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center py-20 text-center px-4 shadow-sm">
                     <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4 border border-indigo-100">
                         <FiBox size={32} className="text-indigo-600" />
                     </div>

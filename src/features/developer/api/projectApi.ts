@@ -119,8 +119,17 @@ export const projectApi = {
         return response.data;
     },
 
-    getMyProjects: async (): Promise<ProjectListResponse[]> => {
-        const response = await axios.get('/projects');
+    getMyProjects: async (projectName?: string, status?: string): Promise<ProjectListResponse[]> => {
+        const params: Record<string, any> = {};
+        
+        if (projectName && projectName.trim() !== '') {
+            params.projectName = projectName.trim();
+        }
+        if (status && status !== 'ALL') {
+            params.status = status;
+        }
+
+        const response = await axios.get('/projects', { params });
         return response.data;
     },
 

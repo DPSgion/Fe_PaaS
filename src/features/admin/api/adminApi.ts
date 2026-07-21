@@ -38,6 +38,9 @@ export interface AdminUser {
   role: string;
   status: string;
   createdAt: string;
+
+  activeProjectCount: number;
+  totalProjectCount: number;
 }
 
 export interface PaginatedUsers {

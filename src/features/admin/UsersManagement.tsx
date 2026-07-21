@@ -240,9 +240,9 @@ export const UsersManagement = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-mono text-sm">
-                        <span className="text-green-600 font-bold">0</span>
+                        <span className="text-green-600 font-bold">{user.activeProjectCount}</span>
                         <span className="text-gray-400 mx-1">/</span>
-                        <span className="text-gray-600">0</span>
+                        <span className="text-gray-600">{user.totalProjectCount}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">

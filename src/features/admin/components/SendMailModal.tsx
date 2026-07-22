@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FiMail, FiX, FiSend, FiLoader } from 'react-icons/fi';
 import { Button } from '../../../components/ui/Button';
 import { adminApi, type AdminProjectListResponse } from '../api/projectApi';
+import toast from 'react-hot-toast';
 
 interface SendMailModalProps {
     project: AdminProjectListResponse; 
@@ -26,9 +27,9 @@ export const SendMailModal = ({ project, onClose }: SendMailModalProps) => {
         setError('');
 
         try {
-            // SỬA GẮT: Dùng adminApi và project.projectId thay vì project.id
+            // Dùng adminApi và project.projectId thay vì project.id
             const message = await adminApi.sendMailToDeveloper(project.projectId, { subject, content });
-            window.alert(message || "Đã gửi email thông báo thành công!");
+            toast.success(message || "Đã gửi email thông báo thành công!");
             onClose(); 
         } catch (err: any) {
             const errMsg = err.response?.data?.message || "Lỗi hệ thống. Không thể gửi mail lúc này.";

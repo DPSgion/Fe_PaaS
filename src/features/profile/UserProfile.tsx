@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { FiArrowLeft, FiCamera, FiUser, FiGithub, FiMail, FiShield, FiHash, FiLink, FiCheck, FiCalendar, FiActivity } from 'react-icons/fi';
 import { Button } from '../../components/ui/Button';
 import { userApi, type UserProfileResponse } from './api/userApi';
+import toast from 'react-hot-toast';
 
 export const UserProfile = () => {
     const navigate = useNavigate();
@@ -54,20 +55,6 @@ export const UserProfile = () => {
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    // Xử lý kích hoạt luồng OAuth2 (Mock UI tạm thời)
-    const handleConnectGithub = () => {
-        console.log("Redirecting to GitHub OAuth2 page...");
-        // Tạm thời set mock data để test UI
-        setGithubUsername('phuong-devops');
-    };
-
-    // Xử lý hủy liên kết GitHub (Mock UI tạm thời)
-    const handleDisconnectGithub = () => {
-        if (window.confirm("Are you sure you want to disconnect your GitHub account? CI/CD pipelines might fail.")) {
-            setGithubUsername(null);
-        }
-    };
-
     const handleUpdateProfile = async (e: React.FormEvent) => {
         // Chặn hành vi reload mặc định của Form HTML
         e.preventDefault();
@@ -81,14 +68,14 @@ export const UserProfile = () => {
             await userApi.updateProfile(payload);
 
             // 2. Bắn thông báo (Lúc này form đã hết lỗi nổi bọt, sẽ chỉ hiện 1 lần)
-            window.alert("Cập nhật thông tin cá nhân thành công!");
+            toast.success("Cập nhật thông tin cá nhân thành công!");
 
             // 3. Ép trình duyệt tải lại toàn bộ trang web để Header ăn tên mới
             window.location.reload();
 
         } catch (err: any) {
             const errorMessage = err.response?.data?.message || 'Lỗi hệ thống. Không thể cập nhật thông tin lúc này.';
-            window.alert(errorMessage);
+            toast.error(errorMessage);
         }
     };
 
@@ -133,7 +120,7 @@ export const UserProfile = () => {
 
             // 3. Xử lý thành công theo đúng yêu cầu Backend
             // Hiển thị text từ Backend trả về ("Đổi mật khẩu thành công!...")
-            window.alert(successMessage || "Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
+            toast.success(successMessage || "Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
 
             // 4. Xóa session hiện tại và ép đăng nhập lại
             localStorage.removeItem('paas_user');

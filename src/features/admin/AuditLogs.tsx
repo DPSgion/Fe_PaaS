@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiCalendar, FiFilter, FiUser, FiBox } from 'react-icons/fi'; // SỬA GẮT: Thêm FiUser và FiBox
+import { FiSearch, FiCalendar, FiFilter, FiUser, FiBox } from 'react-icons/fi';
 import { auditLogApi, type AuditLog } from './api/auditLogApi';
+import toast from 'react-hot-toast';
 
 const ACTION_TYPES = [
   'CREATE_USER', 'UPDATE_USER', 'DELETE_USER', 'RESET_PASSWORD', 'CHANGE_PASSWORD', 
@@ -66,7 +67,8 @@ export const AuditLogManagement = () => {
         // Hứng lỗi trực tiếp từ Backend để dễ debug
         const errorMessage = error.response?.data?.message || error.response?.data || "Không thể tải dữ liệu Audit Log lúc này.";
         console.error("Failed to fetch audit logs", error);
-        window.alert(errorMessage);
+        toast.error(errorMessage);
+        
       } finally {
         setIsLoading(false);
       }

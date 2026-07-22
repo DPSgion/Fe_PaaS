@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { githubApi } from './api/githubApi';
 import { FiLoader } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 export const GithubCallback = () => {
   const [searchParams] = useSearchParams();
@@ -13,7 +14,7 @@ export const GithubCallback = () => {
     const code = searchParams.get('code');
 
     if (!code) {
-      window.alert("Không tìm thấy mã xác thực từ GitHub!");
+      toast.error("Không tìm thấy mã xác thực từ GitHub!");
       navigate('/profile');
       return;
     }
@@ -24,11 +25,11 @@ export const GithubCallback = () => {
 
       try {
         const result = await githubApi.linkAccount(code);
-        window.alert(result.message || `Đã liên kết thành công với tài khoản: ${result.githubUsername}`);
+        toast.success(result.message || `Đã liên kết thành công với tài khoản: ${result.githubUsername}`);
         
       } catch (error: any) {
         const errorMessage = error.response?.data?.message || 'Lỗi liên kết GitHub. Vui lòng thử lại sau.';
-        window.alert(errorMessage);
+        toast.error(errorMessage);
       } finally {
         // Xử lý xong (dù thành công hay thất bại) cũng đá người dùng về lại Profile
         window.location.href = '/profile';

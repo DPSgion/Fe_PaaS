@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { FiPlus, FiTrash2, FiEdit2, FiLock, FiUnlock, FiLoader } from 'react-icons/fi';
 import { projectApi, type EnvVarResponse, type EnvVarRequest } from '../api/projectApi';
+import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 
 interface EnvVariablesTabProps {
     projectId: string | number;
@@ -60,7 +62,7 @@ export const EnvVariablesTab = ({ projectId }: EnvVariablesTabProps) => {
     const handleSubmitModal = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.keyName.trim() || !formData.value.trim()) {
-            window.alert("Vui lòng điền đầy đủ Key và Value.");
+            toast.error("Vui lòng điền đầy đủ Key và Value.");
             return;
         }
 
@@ -78,7 +80,7 @@ export const EnvVariablesTab = ({ projectId }: EnvVariablesTabProps) => {
             fetchEnvs();
         } catch (error: any) {
             const msg = error.response?.data?.message || "Có lỗi xảy ra khi lưu biến môi trường.";
-            window.alert(msg);
+            toast.error(msg);
         } finally {
             setIsSubmitting(false);
         }
@@ -86,16 +88,34 @@ export const EnvVariablesTab = ({ projectId }: EnvVariablesTabProps) => {
 
     // Xóa biến môi trường ngay lập tức
     const handleDelete = async (envId: number) => {
-        if (!window.confirm("Bạn có chắc chắn muốn xóa biến môi trường này không? Hành động này có thể làm ứng dụng ngừng hoạt động nếu thiếu biến cấu hình.")) {
-            return;
-        }
+        const result = await Swal.fire({
+            title: 'Xác nhận xóa?',
+            text: "Bạn có chắc chắn muốn xóa biến môi trường này không? Hành động này có thể làm ứng dụng ngừng hoạt động nếu thiếu biến cấu hình.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Xóa biến',
+            cancelButtonText: 'Hủy'
+        });
         
-        try {
-            await projectApi.deleteEnvVar(projectId, envId);
-            fetchEnvs(); // Tải lại danh sách sau khi xóa
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Có lỗi xảy ra khi xóa biến môi trường.";
-            window.alert(msg);
+        if (result.isConfirmed) {
+            try {
+                await projectApi.deleteEnvVar(projectId, envId);
+                toast.success("Xóa biến môi trường thành công!");
+                fetchEnvs(); // Tải lại danh sách sau khi xóa
+            } catch (error: any) {
+                const data = error.response?.data;
+                let errMsg = data?.message || "Có lỗi xảy ra khi xóa biến môi trường.";
+                
+                // Bắt lỗi chi tiết từ backend nếu có
+                if (data?.errors && typeof data.errors === 'object') {
+                    const errorDetails = Object.values(data.errors).join('\n- ');
+                    errMsg = `${errMsg}\n\nChi tiết lỗi:\n- ${errorDetails}`;
+                }
+                
+                toast.error(errMsg, { duration: 5000 });
+            }
         }
     };
 

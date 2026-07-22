@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FiChevronDown, FiUser, FiLogOut } from 'react-icons/fi';
 import { authApi } from '../../features/auth/api/authApi';
 import { userApi, type UserProfileResponse } from '../../features/profile/api/userApi';
+import Swal from 'sweetalert2';
 
 export const ProfileDropdown = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -38,8 +39,18 @@ export const ProfileDropdown = () => {
     }, []);
 
     const handleLogout = async () => {
-        const isConfirmed = window.confirm("Are you sure you want to log out?");
-        if (isConfirmed) {
+        const result = await Swal.fire({
+            title: 'Xác nhận đăng xuất?',
+            text: "Bạn có chắc chắn muốn thoát khỏi hệ thống?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Đăng xuất',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (result.isConfirmed) {
             try {
                 await authApi.logout();
             } catch (error) {

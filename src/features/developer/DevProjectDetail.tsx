@@ -10,6 +10,8 @@ import { ResourceMetricsChart } from './components/ResourceMetricsChart';
 import { TabDeployHistory } from './components/TabDeployHistory';
 import { TabTerminalLogs } from './components/TabTerminalLogs';
 import { adminApi } from '../admin/api/projectApi';
+import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 
 interface DevProjectDetailProps {
     mode?: 'developer' | 'admin';
@@ -81,66 +83,153 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
     }, [project?.status]);
 
     const handleRedeploy = async () => {
-        if (!projectId || !window.confirm("Bạn có chắc chắn muốn triển khai lại (redeploy) dự án này?")) return;
-        setIsDeploying(true);
-        try {
-            const message = await projectApi.triggerDeploy(projectId);
-            window.alert(message);
-            fetchDetail();
-            setRefreshTrigger(prev => prev + 1);
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Lỗi khi kích hoạt deploy.";
-            window.alert(msg);
-        } finally {
-            setIsDeploying(false);
+        if (!projectId) return;
+
+        const result = await Swal.fire({
+            title: 'Xác nhận Redeploy?',
+            text: "Bạn có chắc chắn muốn triển khai lại dự án này? Quá trình build có thể mất vài phút.",
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Tiến hành',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (result.isConfirmed) {
+            setIsDeploying(true);
+            try {
+                const message = await projectApi.triggerDeploy(projectId);
+                toast.success(message);
+                fetchDetail();
+                setRefreshTrigger(prev => prev + 1);
+            } catch (error: any) {
+                const data = error.response?.data;
+                let errMsg = data?.message || "Lỗi khi kích hoạt deploy.";
+                
+                // Bắt thêm lỗi validation nếu backend có trả về
+                if (data?.errors && typeof data.errors === 'object') {
+                    const errorDetails = Object.values(data.errors).join('\n- ');
+                    errMsg = `${errMsg}\n\nChi tiết lỗi:\n- ${errorDetails}`;
+                }
+                
+                toast.error(errMsg, { duration: 5000 });
+            } finally {
+                setIsDeploying(false);
+            }
         }
     };
 
     const handleRestart = async () => {
-        if (!projectId || !window.confirm("Bạn có chắc chắn muốn khởi động lại (restart) dự án này?")) return;
-        setIsRestarting(true);
-        try {
-            const message = await projectApi.restartProject(projectId);
-            window.alert(message);
-            fetchDetail();
-            setRefreshTrigger(prev => prev + 1);
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Lỗi khi khởi động lại dự án.";
-            window.alert(msg);
-        } finally {
-            setIsRestarting(false);
-        }
-    };
+        if (!projectId) return;
 
-    const handleStop = async () => {
-        if (!projectId || !window.confirm("Bạn có chắc chắn muốn dừng (stop) dự án này? Ứng dụng sẽ không thể truy cập cho đến khi được bật lại.")) return;
-        setIsStopping(true);
-        try {
-            const message = await projectApi.stopProject(projectId);
-            window.alert(message);
-            fetchDetail();
-            setRefreshTrigger(prev => prev + 1);
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Lỗi khi dừng dự án.";
-            window.alert(msg);
-        } finally {
-            setIsStopping(false);
+        const result = await Swal.fire({
+            title: 'Xác nhận Restart?',
+            text: "Bạn có chắc chắn muốn khởi động lại (restart) dự án này?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5', // Màu indigo-600
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Khởi động lại',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (result.isConfirmed) {
+            setIsRestarting(true);
+            try {
+                const message = await projectApi.restartProject(projectId);
+                toast.success(message);
+                fetchDetail();
+                setRefreshTrigger(prev => prev + 1);
+            } catch (error: any) {
+                const data = error.response?.data;
+                let errMsg = data?.message || "Lỗi khi khởi động lại dự án.";
+                
+                if (data?.errors && typeof data.errors === 'object') {
+                    const errorDetails = Object.values(data.errors).join('\n- ');
+                    errMsg = `${errMsg}\n\nChi tiết lỗi:\n- ${errorDetails}`;
+                }
+                
+                toast.error(errMsg, { duration: 5000 });
+            } finally {
+                setIsRestarting(false);
+            }
         }
     };
 
     const handleStart = async () => {
         if (!projectId) return;
-        setIsStarting(true);
-        try {
-            const message = await projectApi.startProject(projectId);
-            window.alert(message);
-            fetchDetail();
-            setRefreshTrigger(prev => prev + 1);
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Lỗi khi khởi động dự án.";
-            window.alert(msg);
-        } finally {
-            setIsStarting(false);
+
+        const result = await Swal.fire({
+            title: 'Xác nhận Start?',
+            text: "Bạn có muốn khởi động (start) dự án này không?",
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5', // Màu indigo-600 quen thuộc
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Khởi động',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (result.isConfirmed) {
+            setIsStarting(true);
+            try {
+                // Gọi API startProject từ projectApi
+                const message = await projectApi.startProject(projectId);
+                toast.success(message);
+                fetchDetail();
+                setRefreshTrigger(prev => prev + 1);
+            } catch (error: any) {
+                const data = error.response?.data;
+                let errMsg = data?.message || "Lỗi khi khởi động dự án.";
+                
+                // Bóc tách lỗi validation chi tiết từ Spring Boot
+                if (data?.errors && typeof data.errors === 'object') {
+                    const errorDetails = Object.values(data.errors).join('\n- ');
+                    errMsg = `${errMsg}\n\nChi tiết lỗi:\n- ${errorDetails}`;
+                }
+                
+                toast.error(errMsg, { duration: 5000 });
+            } finally {
+                setIsStarting(false);
+            }
+        }
+    };
+
+    const handleStop = async () => {
+        if (!projectId) return;
+
+        const result = await Swal.fire({
+            title: 'Xác nhận Stop?',
+            text: "Bạn có chắc chắn muốn dừng (stop) dự án này? Ứng dụng sẽ không thể truy cập cho đến khi được bật lại.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626', // Màu đỏ (red-600) cảnh báo hành động gián đoạn
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Dừng dự án',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (result.isConfirmed) {
+            setIsStopping(true);
+            try {
+                const message = await projectApi.stopProject(projectId);
+                toast.success(message);
+                fetchDetail();
+                setRefreshTrigger(prev => prev + 1);
+            } catch (error: any) {
+                const data = error.response?.data;
+                let errMsg = data?.message || "Lỗi khi dừng dự án.";
+                
+                if (data?.errors && typeof data.errors === 'object') {
+                    const errorDetails = Object.values(data.errors).join('\n- ');
+                    errMsg = `${errMsg}\n\nChi tiết lỗi:\n- ${errorDetails}`;
+                }
+                
+                toast.error(errMsg, { duration: 5000 });
+            } finally {
+                setIsStopping(false);
+            }
         }
     };
 
@@ -149,35 +238,55 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
             setIsForceStopping(true);
             try {
                 const msg = await adminApi.forceStopProject(projectId);
-                window.alert(msg || "Đã ép dừng thành công!");
+                toast.success(msg || "Đã ép dừng thành công!");
                 setIsForceStopModalOpen(false);
                 setConfirmStopText('');
                 fetchDetail();
                 setRefreshTrigger(prev => prev + 1);
             } catch (error: any) {
                 const errMsg = error.response?.data?.message || "Lỗi khi ép dừng dự án.";
-                window.alert(errMsg);
+                toast.error(errMsg);
             } finally {
                 setIsForceStopping(false);
             }
         }
     };
 
-    // --- SỬA GẮT: LOGIC GỌI API DELETE ---
+    // --- LOGIC GỌI API DELETE ---
     const handleRequestDelete = async () => {
-        if (!projectId || project?.status !== 'STOPPED') return;
-        if (!window.confirm(`XÁC NHẬN: Bạn muốn yêu cầu xóa dự án ${project.projectName}? Hệ thống sẽ gửi email OTP cho bạn.`)) return;
+        // SỬA GẮT: Cho phép xóa khi dự án đang STOPPED hoặc CRASHED (Failed)
+        if (!projectId || (project?.status !== 'STOPPED' && project?.status !== 'CRASHED')) return;
+
+        const result = await Swal.fire({
+            title: 'Xác nhận xóa dự án?',
+            text: `Bạn muốn yêu cầu xóa dự án ${project.projectName}? Hệ thống sẽ gửi email OTP cho bạn để xác thực.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Gửi OTP Xóa',
+            cancelButtonText: 'Hủy'
+        });
         
-        setIsRequestingDelete(true);
-        try {
-            const msg = await projectApi.requestDeleteProject(projectId);
-            window.alert(msg); // Hiện popup "Mã xác nhận đã gửi đến email..."
-            setIsDeleteModalOpen(true);
-        } catch (error: any) {
-            const errMsg = error.response?.data?.message || "Lỗi khi yêu cầu xóa dự án.";
-            window.alert(errMsg);
-        } finally {
-            setIsRequestingDelete(false);
+        if (result.isConfirmed) {
+            setIsRequestingDelete(true);
+            try {
+                const msg = await projectApi.requestDeleteProject(projectId);
+                toast.success(msg);
+                setIsDeleteModalOpen(true);
+            } catch (error: any) {
+                const data = error.response?.data;
+                let errMsg = data?.message || "Lỗi khi yêu cầu xóa dự án.";
+                
+                if (data?.errors && typeof data.errors === 'object') {
+                    const errorDetails = Object.values(data.errors).join('\n- ');
+                    errMsg = `${errMsg}\n\nChi tiết lỗi:\n- ${errorDetails}`;
+                }
+                
+                toast.error(errMsg, { duration: 5000 });
+            } finally {
+                setIsRequestingDelete(false);
+            }
         }
     };
 
@@ -187,14 +296,14 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
         setIsConfirmingDelete(true);
         try {
             const msg = await projectApi.confirmDeleteProject(projectId, otpCode);
-            window.alert(msg || "Dự án đã được xóa thành công!");
+            toast.success(msg || "Dự án đã được xóa thành công!");
             setIsDeleteModalOpen(false);
             
             // Đá người dùng về trang danh sách vì dự án hiện tại đã "bốc hơi"
             navigate('/my-projects', { replace: true });
         } catch (error: any) {
             const errMsg = error.response?.data?.message || "Mã xác nhận không hợp lệ hoặc đã hết hạn.";
-            window.alert(errMsg);
+            toast.error(errMsg);
         } finally {
             setIsConfirmingDelete(false);
         }

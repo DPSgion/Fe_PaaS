@@ -4,6 +4,7 @@ import { FiSearch, FiSquare, FiEye, FiMail, FiAlertTriangle, FiLoader } from 're
 import { Button } from '../../components/ui/Button';
 import { adminApi, type AdminProjectListResponse, type ProjectStatus } from './api/projectApi';
 import { SendMailModal } from './components/SendMailModal';
+import toast from 'react-hot-toast';
 
 export const AllProjects = () => {
     // UI Filters State
@@ -83,7 +84,7 @@ export const AllProjects = () => {
             setIsForceStopping(true);
             try {
                 const msg = await adminApi.forceStopProject(projectToStop.projectId);
-                window.alert(msg || "Đã ép dừng thành công!");
+                toast.success(msg || "Đã ép dừng thành công!");
 
                 // Đóng Modal và làm mới bảng ngay lập tức
                 setProjectToStop(null);
@@ -91,7 +92,7 @@ export const AllProjects = () => {
                 setRefreshTrigger(prev => prev + 1);
             } catch (error: any) {
                 const errMsg = error.response?.data?.message || "Lỗi mạng khi ép dừng dự án.";
-                window.alert(errMsg);
+                toast.error(errMsg, { duration: 5000 });
             } finally {
                 setIsForceStopping(false);
             }

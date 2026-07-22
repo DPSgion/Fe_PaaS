@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { FiSave, FiAlertTriangle, FiLoader, FiChevronDown, FiSearch, FiCheck } from 'react-icons/fi';
 import { projectApi, type ProjectUpdateRequest, type ProjectDetailResponse, type GithubBranch } from '../api/projectApi';
+import toast from 'react-hot-toast';
 
 interface ProjectSettingsTabProps {
     projectId: string | number;
@@ -83,7 +84,7 @@ export const ProjectSettingsTab = ({ projectId, initialData, onUpdateSuccess }: 
         e.preventDefault();
         
         if (!projectName.trim() || !branch.trim() || !targetPort) {
-            window.alert("Vui lòng nhập đầy đủ Tên dự án, Nhánh và Port!");
+            toast.error("Vui lòng nhập đầy đủ Tên dự án, Nhánh và Port!");
             return;
         }
 
@@ -97,12 +98,12 @@ export const ProjectSettingsTab = ({ projectId, initialData, onUpdateSuccess }: 
             };
 
             const message = await projectApi.updateProjectSettings(projectId, payload);
-            window.alert(message); 
+            toast.success(message); 
             onUpdateSuccess(); 
             
         } catch (error: any) {
             const msg = error.response?.data?.message || "Có lỗi xảy ra khi cập nhật cấu hình.";
-            window.alert(msg);
+            toast.error(msg);
         } finally {
             setIsSaving(false);
         }

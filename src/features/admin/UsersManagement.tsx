@@ -6,6 +6,7 @@ import { EditRoleModal } from './components/EditRoleModal';
 import { AddUserModal } from './components/AddUserModal';
 import { StatusConfirmModal } from './components/StatusConfirmModal';
 import { ResetPasswordModal } from './components/ResetPasswordModal';
+import toast from 'react-hot-toast';
 
 export const UsersManagement = () => {
   const loggedInUser = JSON.parse(localStorage.getItem('paas_user') || '{}');
@@ -91,10 +92,10 @@ export const UsersManagement = () => {
       setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
       
       setEditRoleUser(null); // Tắt Modal
-      window.alert("Cập nhật quyền thành công!");
+      toast.success("Cập nhật quyền thành công!");
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.response?.data || 'Lỗi hệ thống.';
-      window.alert(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -104,10 +105,10 @@ export const UsersManagement = () => {
       setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
       
       setStatusUser(null); // Đóng Modal
-      window.alert(`Đã ${newStatus === 'ACTIVE' ? 'mở khóa' : 'khóa'} tài khoản thành công!`);
+      toast.success(`Đã ${newStatus === 'ACTIVE' ? 'mở khóa' : 'khóa'} tài khoản thành công!`);
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.response?.data || 'Lỗi hệ thống.';
-      window.alert(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -120,7 +121,7 @@ export const UsersManagement = () => {
     
     // Tạo thành công thì tự đóng modal
     setIsAddModalOpen(false);
-    window.alert("Tạo người dùng thành công! Thông tin đăng nhập đã sẵn sàng.");
+    toast.success("Tạo người dùng thành công! Thông tin đăng nhập đã sẵn sàng.");
   };
 
   // Hàm kiểm tra xem tài khoản đang đăng nhập có quyền Reset không
@@ -138,10 +139,10 @@ export const UsersManagement = () => {
       const res = await adminApi.resetPassword(userId, { password: newPassword });
       setResetPasswordUser(null);
       // Backend trả về mật khẩu, tiện tay in ra cho Admin copy luôn
-      window.alert(`Đổi mật khẩu thành công!\n\nTài khoản: ${res.username}\nMật khẩu mới: ${res.newPassword}\n\nHãy copy và gửi mật khẩu này cho người dùng.`);
+      toast.success(`Đổi mật khẩu thành công!\n\nTài khoản: ${res.username}\nMật khẩu mới: ${res.newPassword}\n\nHãy copy và gửi mật khẩu này cho người dùng.`);
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.response?.data || 'Lỗi hệ thống. Không thể reset mật khẩu.';
-      window.alert(errorMessage);
+      toast.error(errorMessage);
     }
   };
 

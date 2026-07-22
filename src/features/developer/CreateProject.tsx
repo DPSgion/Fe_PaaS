@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiGithub, FiLock, FiGlobe, FiArrowRight, FiLoader, FiArrowLeft, FiChevronDown, FiCheck, FiSettings, FiChevronUp } from 'react-icons/fi';
+import { FiSearch, FiGithub, FiLock, FiGlobe, FiLoader, FiArrowLeft, FiChevronDown, FiCheck, FiSettings, FiChevronUp } from 'react-icons/fi';
 import { projectApi, type GithubRepo, type GithubBranch } from './api/projectApi';
+import toast from 'react-hot-toast';
 
 export const CreateProject = () => {
     const navigate = useNavigate();
@@ -48,7 +49,7 @@ export const CreateProject = () => {
                 setRepos(data);
             } catch (error) {
                 console.error("Lỗi khi tải danh sách repository", error);
-                window.alert("Không thể kết nối với GitHub. Vui lòng kiểm tra lại cấu hình liên kết ở Profile.");
+                toast.error("Không thể kết nối với GitHub. Vui lòng kiểm tra lại cấu hình liên kết ở Profile.");
             } finally {
                 setIsLoadingRepos(false);
             }
@@ -100,7 +101,7 @@ export const CreateProject = () => {
             setBranches(branchData);
         } catch (error) {
             console.error("Lỗi lấy danh sách nhánh", error);
-            window.alert("Không thể tải danh sách nhánh từ GitHub.");
+            toast.error("Không thể tải danh sách nhánh từ GitHub.");
         } finally {
             setIsLoadingBranches(false);
         }
@@ -138,7 +139,7 @@ export const CreateProject = () => {
             console.error("Lỗi khi tạo project", error);
             // Hiển thị chính xác câu chửi (BusinessException 400, 401) từ Spring Boot trả lên
             const errorMessage = error.response?.data?.message || "Có lỗi xảy ra khi khởi tạo dự án.";
-            window.alert(errorMessage);
+            toast.error(errorMessage);
             setIsDeploying(false);
         }
     };

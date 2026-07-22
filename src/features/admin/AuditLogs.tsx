@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiCalendar, FiFilter } from 'react-icons/fi';
+import { FiSearch, FiCalendar, FiFilter, FiUser, FiBox } from 'react-icons/fi'; // SỬA GẮT: Thêm FiUser và FiBox
 import { auditLogApi, type AuditLog } from './api/auditLogApi';
 
+// SỬA GẮT: Đồng bộ 100% với Enum của Backend
 const ACTION_TYPES = [
-  'CREATE_USER', 'UPDATE_USER', 'SOFT_DELETE_USER', 'RESET_PASSWORD', 'CHANGE_PASSWORD', 
+  'CREATE_USER', 'UPDATE_USER', 'DELETE_USER', 'RESET_PASSWORD', 'CHANGE_PASSWORD', 
   'BAN_USER', 'UNBAN_USER', 'GRANT_ADMIN', 'REVOKE_ADMIN', 
-//   'CREATE_PROJECT', 'DELETE_PROJECT', 'FORCE_STOP', 'UPDATE_ENV', 'MAP_DOMAIN'
+  'CREATE_PROJECT', 'DELETE_PROJECT', 'FORCE_STOP', 
+  'CREATE_ENV', 'UPDATE_ENV', 'DELETE_ENV'
 ];
 
 export const AuditLogManagement = () => {
@@ -74,10 +76,10 @@ export const AuditLogManagement = () => {
     fetchLogs();
   }, [currentPage, debouncedSearch, actionFilter, fromDate, toDate]);
 
-  // Hàm bôi màu cho Action Badge
+  // SỬA GẮT: Cập nhật hàm bôi màu cho khớp với các Enum mới
   const getActionBadgeClass = (action: string) => {
-    const dangerActions = ['SOFT_DELETE_USER', 'BAN_USER', 'REVOKE_ADMIN', 'DELETE_PROJECT', 'FORCE_STOP'];
-    const successActions = ['CREATE_USER', 'UNBAN_USER', 'GRANT_ADMIN', 'CREATE_PROJECT'];
+    const dangerActions = ['DELETE_USER', 'BAN_USER', 'REVOKE_ADMIN', 'DELETE_PROJECT', 'FORCE_STOP', 'DELETE_ENV'];
+    const successActions = ['CREATE_USER', 'UNBAN_USER', 'GRANT_ADMIN', 'CREATE_PROJECT', 'CREATE_ENV'];
     
     if (dangerActions.includes(action)) return 'bg-red-50 text-red-700 border-red-200';
     if (successActions.includes(action)) return 'bg-green-50 text-green-700 border-green-200';
@@ -122,7 +124,7 @@ export const AuditLogManagement = () => {
             <select 
               value={actionFilter}
               onChange={(e) => handleFilterChange(setActionFilter, e.target.value)}
-              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer bg-white"
+              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer bg-white font-medium text-gray-700"
             >
               <option value="ALL">All Actions</option>
               {ACTION_TYPES.map(type => (
@@ -196,12 +198,20 @@ export const AuditLogManagement = () => {
                       {log.actor}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`font-mono text-[11px] px-2.5 py-1 rounded-md border font-semibold ${getActionBadgeClass(log.actionType)}`}>
+                      <span className={`font-mono text-[11px] px-2.5 py-1 rounded-md border font-bold tracking-tight ${getActionBadgeClass(log.actionType)}`}>
                         {log.actionType}
                       </span>
                     </td>
+                    {/* SỬA GẮT: Gắn Icon dựa trên loại Action để phân biệt rõ Target là User hay Project */}
                     <td className="px-6 py-4 font-medium text-gray-800">
-                      {log.target}
+                      <div className="flex items-center gap-2">
+                        {log.actionType.includes('PROJECT') || log.actionType.includes('ENV') || log.actionType === 'FORCE_STOP' ? (
+                            <div className="bg-indigo-50 p-1.5 rounded text-indigo-600"><FiBox size={14} /></div>
+                        ) : (
+                            <div className="bg-teal-50 p-1.5 rounded text-teal-600"><FiUser size={14} /></div>
+                        )}
+                        {log.target}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-gray-600 text-xs leading-relaxed">
                       {log.description}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FiCamera, FiUser, FiGithub, FiMail, FiShield, FiHash, FiLink, FiCheck, FiCalendar, FiActivity } from 'react-icons/fi';
+import { useNavigate, Link } from 'react-router-dom';
+import { FiArrowLeft, FiCamera, FiUser, FiGithub, FiMail, FiShield, FiHash, FiLink, FiCheck, FiCalendar, FiActivity } from 'react-icons/fi';
 import { Button } from '../../components/ui/Button';
 import { userApi, type UserProfileResponse } from './api/userApi';
 
@@ -175,6 +175,14 @@ export const UserProfile = () => {
 
     return (
         <div className="max-w-2xl mx-auto pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+            <Link
+                to="/my-projects"
+                className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 font-medium mb-6 transition-colors"
+            >
+                <FiArrowLeft /> Back to My Projects
+            </Link>
+
             <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">My Profile</h2>
                 <p className="text-sm text-gray-500 mt-1">Quản lý thông tin cá nhân và thiết lập tài khoản liên kết.</p>

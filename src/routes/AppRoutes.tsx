@@ -17,6 +17,7 @@ import { AuditLogManagement } from '../features/admin/AuditLogs';
 import { AllProjects } from '../features/admin/AllProjects';
 import { CreateProject } from '../features/developer/CreateProject';
 import { NotificationList } from '../features/notification/NotificationList';
+import { SystemSettings } from '../features/SystemAdmin/SystemSettings';
 
 export const AppRoutes = () => {
   return (
@@ -54,6 +55,8 @@ export const AppRoutes = () => {
             <Route path="/admin/audit-logs" element={<AuditLogManagement />} />
             
             <Route path="/admin/projects/:projectId" element={<DevProjectDetail mode="admin" />} />
+
+            <Route path="/admin/settings" element={<SystemSettings />} />
           </Route>
         </Route>
 

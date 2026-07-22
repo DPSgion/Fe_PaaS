@@ -16,6 +16,7 @@ import { UsersManagement } from '../features/admin/UsersManagement';
 import { AuditLogManagement } from '../features/admin/AuditLogs';
 import { AllProjects } from '../features/admin/AllProjects';
 import { CreateProject } from '../features/developer/CreateProject';
+import { NotificationList } from '../features/notification/NotificationList';
 
 export const AppRoutes = () => {
   return (
@@ -40,6 +41,7 @@ export const AppRoutes = () => {
             <Route path="/my-projects" element={<MyProjects />} />
             <Route path="/projects/new" element={<CreateProject />} />
             <Route path="/project/:projectId/env/:envId" element={<DevProjectDetail />} />
+            <Route path="/notifications" element={<NotificationList />} />
 
             {/* Profile */}
             <Route path="/profile" element={<UserProfile />} />

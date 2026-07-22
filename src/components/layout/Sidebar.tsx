@@ -1,6 +1,6 @@
 // src/components/layout/Sidebar.tsx
 import { Link, useLocation } from 'react-router-dom';
-import { FiGrid, FiDatabase, FiServer, FiUsers, FiLayers, FiList } from 'react-icons/fi';
+import { FiGrid, FiDatabase, FiServer, FiUsers, FiLayers, FiList, FiBell } from 'react-icons/fi';
 
 const navItems = [
   { 
@@ -8,6 +8,7 @@ const navItems = [
     items: [
       { name: "Dashboard", path: "/", icon: FiGrid },
       { name: "My Projects", path: "/my-projects", icon: FiDatabase },
+      { name: "Notifications", path: "/notifications", icon: FiBell },
     ]
   },
   { 

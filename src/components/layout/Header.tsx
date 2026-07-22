@@ -1,6 +1,6 @@
 // src/components/layout/Header.tsx
 import { FiSearch } from 'react-icons/fi';
-import { NotificationDropdown } from '../ui/NotificationDropdown';
+import { NotificationDropdown } from '../../features/notification/components/NotificationDropdown';
 import { ProfileDropdown } from '../ui/ProfileDropdown';
 
 export const Header = () => {

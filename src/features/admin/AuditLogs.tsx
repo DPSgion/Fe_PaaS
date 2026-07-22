@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { FiSearch, FiCalendar, FiFilter, FiUser, FiBox } from 'react-icons/fi'; // SỬA GẮT: Thêm FiUser và FiBox
 import { auditLogApi, type AuditLog } from './api/auditLogApi';
 
-// SỬA GẮT: Đồng bộ 100% với Enum của Backend
 const ACTION_TYPES = [
   'CREATE_USER', 'UPDATE_USER', 'DELETE_USER', 'RESET_PASSWORD', 'CHANGE_PASSWORD', 
-  'BAN_USER', 'UNBAN_USER', 'GRANT_ADMIN', 'REVOKE_ADMIN', 
+  'BAN_USER', 'UNBAN_USER', 'GRANT_ADMIN', 'REVOKE_ADMIN', 'SEND_MAIL',
   'CREATE_PROJECT', 'DELETE_PROJECT', 'FORCE_STOP', 
   'CREATE_ENV', 'UPDATE_ENV', 'DELETE_ENV'
 ];
@@ -202,10 +201,10 @@ export const AuditLogManagement = () => {
                         {log.actionType}
                       </span>
                     </td>
-                    {/* SỬA GẮT: Gắn Icon dựa trên loại Action để phân biệt rõ Target là User hay Project */}
+                    {/* Gắn Icon dựa trên loại Action để phân biệt rõ Target là User hay Project */}
                     <td className="px-6 py-4 font-medium text-gray-800">
                       <div className="flex items-center gap-2">
-                        {log.actionType.includes('PROJECT') || log.actionType.includes('ENV') || log.actionType === 'FORCE_STOP' ? (
+                        {log.actionType.includes('PROJECT') || log.actionType.includes('ENV') || ['FORCE_STOP', 'SEND_MAIL'].includes(log.actionType) ? (
                             <div className="bg-indigo-50 p-1.5 rounded text-indigo-600"><FiBox size={14} /></div>
                         ) : (
                             <div className="bg-teal-50 p-1.5 rounded text-teal-600"><FiUser size={14} /></div>

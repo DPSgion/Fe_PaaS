@@ -1,5 +1,11 @@
 import axios from '../../../lib/axios';
 
+export interface AdminMailRequest {
+    subject: string;
+    content: string;
+}
+
+
 // ============================================================================
 // TYPES (ĐỒNG BỘ 100% VỚI SPRING BOOT DTO)
 // ============================================================================
@@ -48,6 +54,11 @@ export const adminApi = {
 
     forceStopProject: async (projectId: number | string): Promise<string> => {
         const response = await axios.post(`/deployments/admin/${projectId}/force-stop`);
+        return response.data;
+    },
+
+    sendMailToDeveloper: async (projectId: number | string, payload: AdminMailRequest): Promise<string> => {
+        const response = await axios.post(`/projects/admin/${projectId}/send-mail`, payload);
         return response.data;
     }
 };

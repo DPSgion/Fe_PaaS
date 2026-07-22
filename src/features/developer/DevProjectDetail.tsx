@@ -302,28 +302,39 @@ export const DevProjectDetail = ({ mode = 'developer' }: DevProjectDetailProps) 
             {/* 2. Project Info Block */}
             <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3 text-sm w-full">
-                    <div className="flex">
-                        <span className="text-gray-500 w-24">Domain:</span>
-                        <span className={`font-medium ${project.domain ? 'text-indigo-600' : 'text-gray-400 italic'}`}>
-                            {project.domain || 'Not configured'}
-                        </span>
+                    {/* SỬA GẮT: Nâng cấp phần hiển thị Domain thành đường link bấm được */}
+                    <div className="flex items-center">
+                        <span className="text-gray-500 w-24 shrink-0">Domain:</span>
+                        {metrics?.domain ? (
+                            <a 
+                                href={metrics.domain} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline truncate"
+                                title="Truy cập ứng dụng"
+                            >
+                                {metrics.domain}
+                            </a>
+                        ) : (
+                            <span className="font-medium text-gray-400 italic">Not configured</span>
+                        )}
                     </div>
-                    <div className="flex">
-                        <span className="text-gray-500 w-24">CPU:</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 w-24 shrink-0">CPU:</span>
                         <span className="font-mono text-gray-900">{project.status === 'RUNNING' ? `${liveStats.cpu} %` : '0 %'}</span>
                     </div>
-                    <div className="flex">
-                        <span className="text-gray-500 w-24">Image:</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 w-24 shrink-0">Image:</span>
                         <span className="font-mono text-gray-900">
                             {metrics?.imageSize ? `${metrics.imageSize} MB` : 'N/A'}
                         </span>
                     </div>
-                    <div className="flex">
-                        <span className="text-gray-500 w-24">RAM:</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 w-24 shrink-0">RAM:</span>
                         <span className="font-mono text-gray-900">{project.status === 'RUNNING' ? liveStats.ram : '0 MB'}</span>
                     </div>
-                    <div className="flex">
-                        <span className="text-gray-500 w-24">Container ID:</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 w-24 shrink-0">Container ID:</span>
                         <span className="font-mono text-gray-500">
                             {metrics?.containerId ? metrics.containerId.substring(0, 12) : 'N/A'}
                         </span>

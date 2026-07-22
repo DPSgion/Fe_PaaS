@@ -27,6 +27,7 @@ export interface ResourceChartData {
 export interface ProjectMetricsResponse {
     containerId: string | null;
     imageSize: number | null;
+    domain: string | null;
 }
 
 export interface ProjectUpdateRequest {

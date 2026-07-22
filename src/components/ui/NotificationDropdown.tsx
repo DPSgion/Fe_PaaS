@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { FiBell, FiCheckCircle, FiAlertCircle, FiInfo, FiServer, FiCheck } from 'react-icons/fi';
 import { notificationApi, type NotificationResponse } from './api/notificationApi';
+import axios from '../../lib/axios';
 
 // ============================================================================
 // COMPONENT
@@ -29,34 +30,27 @@ export const NotificationDropdown = () => {
 
     // 2. KẾT NỐI SSE ĐỂ HỨNG THÔNG BÁO REALTIME TỪ SPRING BOOT
     useEffect(() => {
-        // Lấy token để truyền qua URL (Vì EventSource không hỗ trợ Header Authorization)
-        const token = localStorage.getItem('paas_token') || ''; 
-        // Đổi domain cho khớp với cấu hình proxy của bạn. 
-        const sseUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/notifications/stream?token=${token}`;
-        
-        const eventSource = new EventSource(sseUrl);
+    const baseUrl = axios.defaults.baseURL || 'http://localhost:8080';
+    const sseUrl = `${baseUrl}/notifications/stream`;
 
-        eventSource.onmessage = (event) => {
-            try {
-                const newNotif: NotificationResponse = JSON.parse(event.data);
-                // Nhét thông báo mới vào đầu danh sách
-                setNotifications(prev => [newNotif, ...prev]);
-            } catch (err) {
-                console.error("Error parsing SSE data", err);
-            }
-        };
+    // withCredentials: true để trình duyệt tự động gửi cookie HttpOnly (phuong_paas)
+    const eventSource = new EventSource(sseUrl, { withCredentials: true });
 
-        eventSource.onerror = (error) => {
-            console.error("SSE Connection Error", error);
-            eventSource.close();
-            // Có thể viết thêm logic auto-reconnect ở đây nếu cần
-        };
+    eventSource.onopen = () => console.log("🟢 SSE Connected Successfully!");
+    eventSource.onerror = (e) => console.error("🔴 SSE Error:", e);
 
-        // Dọn dẹp connection khi user rời khỏi hệ thống / component bị unmount
-        return () => {
-            eventSource.close();
-        };
-    }, []);
+    eventSource.addEventListener('NEW_NOTIFICATION', (event) => {
+        try {
+            const newNotif = JSON.parse(event.data);
+            setNotifications(prev => [newNotif, ...prev]);
+        } catch (err) {
+            console.error("Lỗi parse JSON:", err);
+        }
+    });
+
+    return () => eventSource.close();
+}, []);
+
 
     // Logic click ra ngoài để đóng dropdown
     useEffect(() => {
@@ -73,7 +67,7 @@ export const NotificationDropdown = () => {
     const handleMarkAllAsRead = async () => {
         // Tối ưu UX: Giao diện chuyển thành đã đọc ngay lập tức (Optimistic UI)
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-        
+
         try {
             // TODO: Gọi API Backend lưu xuống DB (Hiện tại API của bạn chưa có endpoint này)
             // await notificationApi.markAllAsRead();
@@ -88,7 +82,7 @@ export const NotificationDropdown = () => {
             case 'SUCCESS': return <FiCheckCircle className="text-green-500 mt-0.5 shrink-0" size={16} />;
             case 'ERROR': return <FiAlertCircle className="text-red-500 mt-0.5 shrink-0" size={16} />;
             case 'WARNING': return <FiServer className="text-orange-500 mt-0.5 shrink-0" size={16} />;
-            case 'INFO': 
+            case 'INFO':
             default: return <FiInfo className="text-blue-500 mt-0.5 shrink-0" size={16} />;
         }
     };

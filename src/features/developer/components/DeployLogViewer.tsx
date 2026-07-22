@@ -38,10 +38,10 @@ export const DeployLogViewer = ({ isOpen, onClose, deploymentId, status, onDeplo
             // ----------------------------------------------------
             setIsStreaming(true);
             // Lấy baseURL từ file cấu hình của bạn, dự phòng localhost:8080 nếu lỗi
-            const baseURL = axios.defaults.baseURL || 'http://localhost:8080';
+            const baseUrl = axios.defaults.baseURL || 'http://localhost:8080';
 
             // Nối thẳng với endpoint backend (nhớ check lại xem BE của bạn có prefix /api không nhé)
-            const sseUrl = `${baseURL}/deployments/${deploymentId}/logs/live`;
+            const sseUrl = `${baseUrl}/deployments/${deploymentId}/logs/live`;
 
             const sse = new EventSource(sseUrl, { withCredentials: true });
             eventSourceRef.current = sse;
